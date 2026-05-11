@@ -1,0 +1,197 @@
+﻿/* Zmienne globalne (Nowoczesny Dark Mode) */
+:root {
+    --bg-main: #121212;
+    --bg-card: #1e1e20;
+    --text-main: #ffffff;
+    --text-muted: #888890;
+    --accent: #007acc;
+    --color-turbo: #ff4757;
+    --color-balanced: #ffa502;
+    --color-silent: #2ed573;
+    --radius: 12px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Układ główny */
+.dashboard-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Pasek górny */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+    .topbar h1 {
+        margin: 0;
+        font-size: 1.8em;
+        font-weight: 700;
+    }
+
+.highlight {
+    color: var(--accent);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--color-silent);
+    box-shadow: 0 0 10px var(--color-silent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+}
+
+/* Siatka układu */
+.layout-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr; /* Lewa kolumna sztywna, prawa bierze resztę */
+    gap: 20px;
+    flex-grow: 1;
+    min-height: 0; /* Ważne dla Canvas w CSS Grid */
+}
+
+/* Wspólne kafelki */
+.card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 30px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Sidebar i Metryki */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.metric-title {
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin: 0 0 10px 0;
+}
+
+.temp-display {
+    font-size: 4em;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.mode-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 1.2em;
+    letter-spacing: 1px;
+}
+
+.divider {
+    height: 1px;
+    background-color: rgba(255,255,255,0.1);
+    margin: 10px 0;
+}
+
+/* Elegancki Input */
+input[type="number"] {
+    width: 100%;
+    background-color: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-main);
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 1.2em;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+    input[type="number"]:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+.help-text {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin: 0 0 10px 0;
+}
+
+/* Info Box */
+.info-box {
+    margin-top: auto; /* Wypycha na sam dół sidebaru */
+    background-color: rgba(0, 122, 204, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 15px;
+    border-radius: 4px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+    .info-box p {
+        margin: 0;
+        font-size: 0.9em;
+        line-height: 1.4;
+        color: #ccc;
+    }
+
+    .info-box svg {
+        flex-shrink: 0;
+        color: var(--accent);
+    }
+
+/* Prawy Panel Wykresu */
+.chart-section {
+    position: relative;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.grabbing {
+    cursor: grabbing !important;
+}

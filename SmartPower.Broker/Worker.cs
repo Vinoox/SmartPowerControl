@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Server;
 
@@ -6,26 +7,27 @@ namespace SmartPower.Broker;
 public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
+    private readonly BrokerOptions _options;
     private MqttServer _mqttServer;
 
-    public Worker(ILogger<Worker> logger)
+    public Worker(ILogger<Worker> logger, IOptions<BrokerOptions> options)
     {
         _logger = logger;
+        _options = options.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var mqttFactory = new MqttFactory();
 
-        // Konfiguracja serwera
         var mqttServerOptions = mqttFactory.CreateServerOptionsBuilder()
-            .WithDefaultEndpoint() // Domyœlnie port 1883
-            .WithDefaultEndpointBoundIPAddress(System.Net.IPAddress.Parse("127.0.0.1"))
+            .WithDefaultEndpoint()
+            .WithDefaultEndpointBoundIPAddress(System.Net.IPAddress.Parse(_options.IpAddress))
+            .WithDefaultEndpointPort(_options.Port)
             .Build();
 
         _mqttServer = mqttFactory.CreateMqttServer(mqttServerOptions);
 
-        // Zdarzenia logowania klientów
         _mqttServer.ClientConnectedAsync += e =>
         {
             _logger.LogInformation($"Klient po³¹czony: {e.ClientId}");
@@ -47,7 +49,6 @@ public class Worker : BackgroundService
         }
         catch (OperationCanceledException)
         {
-            // Ten wyj¹tek jest ca³kowicie normalny przy wy³¹czaniu programu (Ctrl+C)
             _logger.LogInformation("Zatrzymywanie lokalnego brokera MQTT...");
         }
         catch (Exception ex)

@@ -3,424 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartPower Dashboard</title>
+    <title>SmartPower Core</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
 
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1e1e1e;
-            color: #f5f5f5;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: auto;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .card {
-            background-color: #2d2d30;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-header {
-            margin-top: 0;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #3e3e42;
-            font-size: 1.2em;
-            text-align: center;
-        }
-
-        .span-1 {
-            grid-column: span 1;
-        }
-
-        .span-2 {
-            grid-column: span 2;
-        }
-
-        .span-3 {
-            grid-column: span 3;
-        }
-
-        .stat-box {
-            text-align: center;
-            justify-content: center;
-        }
-
-        .temp-value {
-            font-size: 3.5em;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 0 0 10px rgba(255,255,255,0.2);
-        }
-
-        .mode-value {
-            font-size: 1.5em;
-            padding: 5px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            display: inline-block;
-            margin-top: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-            flex-grow: 1;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #aaa;
-            font-size: 0.9em;
-        }
-
-        input[type="number"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #555;
-            border-radius: 5px;
-            background: #1e1e1e;
-            color: #fff;
-            font-size: 1.2em;
-            text-align: center;
-            box-sizing: border-box;
-        }
-
-        .btn-save {
-            grid-column: span 3;
-            padding: 15px;
-            background-color: #007acc;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-            .btn-save:hover {
-                background-color: #005999;
-            }
-
-        .header-silent {
-            border-bottom-color: #4ecdc4;
-            color: #4ecdc4;
-        }
-
-        .header-balanced {
-            border-bottom-color: #ffce56;
-            color: #ffce56;
-        }
-
-        .header-turbo {
-            border-bottom-color: #ff6b6b;
-            color: #ff6b6b;
-        }
-
-        /* Klasa dodawana do canvasu podczas przesuwania */
-        .grabbing {
-            cursor: grabbing !important;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
 
-    <h1 style="text-align: center; color: #ccc; margin-bottom: 30px;">SmartPower <span style="color: #007acc;">Limit Controller</span></h1>
-
-    <div class="container">
-
-        <div class="card stat-box span-1">
-            <h3 class="card-header" style="color: #fff; border-bottom: none;">Status Procesora</h3>
-            <div class="temp-value" id="currentTemp">-- °C</div>
-            <div>
-                <div class="mode-value" id="currentMode" style="background-color: #555;">Ładowanie...</div>
+    <div class="dashboard-wrapper">
+        <header class="topbar">
+            <h1>SmartPower <span class="highlight">Core</span></h1>
+            <div class="status-indicator">
+                <span class="dot live"></span> System Online
             </div>
-            <div style="margin-top: 20px; color: #888; font-size: 0.9em;">
-                💡 Wskazówka: Złap i przeciągnij przerywane linie na wykresie, aby zmienić progi temperatury!
-            </div>
-        </div>
+        </header>
 
-        <div class="card span-2" style="position: relative; height: 350px;">
-            <canvas id="tempChart"></canvas>
-        </div>
+        <main class="layout-grid">
 
-        <div class="card span-1">
-            <h3 class="card-header header-turbo">Tryb TURBO (Max Moc)</h3>
-            <div class="form-group">
-                <label>Górna granica temperatury (°C)</label>
-                <input type="number" id="inputTurbo" step="1" required>
-            </div>
-        </div>
+            <aside class="sidebar card">
+                <div class="metric-group">
+                    <h2 class="metric-title">Temperatura CPU</h2>
+                    <div class="temp-display" id="currentTemp">-- °C</div>
+                </div>
 
-        <div class="card span-1">
-            <h3 class="card-header header-balanced">Tryb BALANCED</h3>
-            <div class="form-group">
-                <label>Histereza spadku (°C)</label>
-                <input type="number" id="inputHysteresis" step="1" required>
-            </div>
-        </div>
+                <div class="metric-group">
+                    <h2 class="metric-title">Aktywny Profil Zasilania</h2>
+                    <div class="mode-badge" id="currentMode">ŁADOWANIE...</div>
+                </div>
 
-        <div class="card span-1">
-            <h3 class="card-header header-silent">Tryb SILENT (Throttling)</h3>
-            <div class="form-group">
-                <label>Próg dławienia awaryjnego (°C)</label>
-                <input type="number" id="inputSilent" step="1" required>
-            </div>
-        </div>
+                <div class="divider"></div>
 
-        <button type="button" id="btnSave" class="btn-save">Wymuś zapis manualny</button>
+                <div class="metric-group">
+                    <h2 class="metric-title">Histereza (°C)</h2>
+                    <p class="help-text">Zabezpieczenie przed skokami trybów</p>
+                    <input type="number" id="inputHysteresis" step="0.5" min="0" max="15" title="Zmiana wartości automatycznie zapisuje się w systemie">
+                </div>
+
+                <div class="info-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <p>Przeciągaj przerywane linie bezpośrednio na wykresie, aby płynnie dostosować limity Throttlingu.</p>
+                </div>
+            </aside>
+
+            <section class="chart-section card">
+                <canvas id="tempChart"></canvas>
+            </section>
+
+        </main>
     </div>
 
-    <script>
-        const colors = {
-            silent: 'rgba(78, 205, 196, 0.15)',
-            balanced: 'rgba(255, 206, 86, 0.15)',
-            turbo: 'rgba(255, 107, 107, 0.15)'
-        };
-
-        // Lokalny stan aplikacji ułatwiający przeciąganie
-        let appState = {
-            thresholdTurbo: 60,
-            thresholdSilent: 80,
-            hysteresis: 3
-        };
-
-        let draggingLine = null; // 'turbo' lub 'silent'
-
-        function updateModeUI(modeId) {
-            const el = document.getElementById('currentMode');
-            switch (modeId) {
-                case 0:
-                    el.innerText = "BALANCED";
-                    el.style.backgroundColor = 'rgba(255, 206, 86, 0.4)'; el.style.color = '#ffce56'; break;
-                case 1:
-                    el.innerText = "TURBO";
-                    el.style.backgroundColor = 'rgba(255, 107, 107, 0.4)'; el.style.color = '#ff6b6b'; break;
-                case 2:
-                    el.innerText = "SILENT (Dławienie)";
-                    el.style.backgroundColor = 'rgba(78, 205, 196, 0.4)'; el.style.color = '#4ecdc4'; break;
-                default:
-                    el.innerText = "BRAK DANYCH";
-                    el.style.backgroundColor = '#555'; el.style.color = '#ccc';
-            }
-        }
-
-        Chart.register(window['chartjs-plugin-annotation']);
-
-        const ctx = document.getElementById('tempChart');
-        const tempChart = new Chart(ctx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Temperatura CPU (°C)',
-                    data: [],
-                    borderColor: '#fff',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderWidth: 3,
-                    fill: false,
-                    tension: 0.3,
-                    pointRadius: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { min: 0, max: 120, grid: { color: '#444' }, ticks: { color: '#aaa', stepSize: 20 } },
-                    x: { display: false }
-                },
-                animation: { duration: 0 }, // Animacje muszą być wyłączone na czas przeciągania
-                plugins: {
-                    legend: { display: false },
-                    annotation: {
-                        annotations: {
-                            // TŁA
-                            boxTurbo: { type: 'box', yMin: 0, yMax: 60, backgroundColor: colors.turbo, borderWidth: 0 },
-                            boxBalanced: { type: 'box', yMin: 60, yMax: 80, backgroundColor: colors.balanced, borderWidth: 0 },
-                            boxSilent: { type: 'box', yMin: 80, yMax: 120, backgroundColor: colors.silent, borderWidth: 0 },
-
-                            // POZIOME LINIE Z TAGAMI DO PRZECIĄGANIA
-                            lineTurbo: {
-                                type: 'line',
-                                yMin: 60, yMax: 60,
-                                borderColor: '#ff6b6b',
-                                borderWidth: 3,
-                                borderDash: [5, 5],
-                                label: { display: true, content: 'TURBO 60°C', position: 'end', backgroundColor: 'rgba(255, 107, 107, 0.9)' }
-                            },
-                            lineSilent: {
-                                type: 'line',
-                                yMin: 80, yMax: 80,
-                                borderColor: '#4ecdc4',
-                                borderWidth: 3,
-                                borderDash: [5, 5],
-                                label: { display: true, content: 'SILENT 80°C', position: 'end', backgroundColor: 'rgba(78, 205, 196, 0.9)' }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        function renderAnnotations() {
-            const ann = tempChart.options.plugins.annotation.annotations;
-
-            // Renderuj pola
-            ann.boxTurbo.yMax = appState.thresholdTurbo;
-            ann.boxBalanced.yMin = appState.thresholdTurbo;
-            ann.boxBalanced.yMax = appState.thresholdSilent;
-            ann.boxSilent.yMin = appState.thresholdSilent;
-
-            // Renderuj linie
-            ann.lineTurbo.yMin = appState.thresholdTurbo;
-            ann.lineTurbo.yMax = appState.thresholdTurbo;
-            ann.lineTurbo.label.content = `LIMIT TURBO | ${Math.round(appState.thresholdTurbo)}°C`;
-
-            ann.lineSilent.yMin = appState.thresholdSilent;
-            ann.lineSilent.yMax = appState.thresholdSilent;
-            ann.lineSilent.label.content = `LIMIT BALANCED | ${Math.round(appState.thresholdSilent)}°C`;
-
-            tempChart.update();
-        }
-
-        // --- SYSTEM DRAG AND DROP (Przeciąganie Linii) ---
-
-        ctx.addEventListener('mousedown', (e) => {
-            const rect = ctx.getBoundingClientRect();
-            const y = e.clientY - rect.top;
-            const yValue = tempChart.scales.y.getValueForPixel(y);
-
-            // Sprawdzamy czy kliknięto w okolicach (+/- 5°C) którejś z linii
-            if (Math.abs(yValue - appState.thresholdTurbo) < 5) {
-                draggingLine = 'turbo';
-                ctx.classList.add('grabbing');
-            } else if (Math.abs(yValue - appState.thresholdSilent) < 5) {
-                draggingLine = 'silent';
-                ctx.classList.add('grabbing');
-            }
-        });
-
-        ctx.addEventListener('mousemove', (e) => {
-            const rect = ctx.getBoundingClientRect();
-            const y = e.clientY - rect.top;
-            let yValue = tempChart.scales.y.getValueForPixel(y);
-
-            if (draggingLine) {
-                // Zabezpieczenia: Tryb Turbo nie może być wyższy niż Silent
-                if (draggingLine === 'turbo') {
-                    if (yValue > appState.thresholdSilent - 2) yValue = appState.thresholdSilent - 2;
-                    if (yValue < 0) yValue = 0;
-                    appState.thresholdTurbo = Math.round(yValue);
-                } else if (draggingLine === 'silent') {
-                    if (yValue < appState.thresholdTurbo + 2) yValue = appState.thresholdTurbo + 2;
-                    if (yValue > 120) yValue = 120;
-                    appState.thresholdSilent = Math.round(yValue);
-                }
-
-                // Aktualizuj na żywo inputy oraz wykres
-                document.getElementById('inputTurbo').value = appState.thresholdTurbo;
-                document.getElementById('inputSilent').value = appState.thresholdSilent;
-                renderAnnotations();
-            } else {
-                // Zmiana kursora gdy najedziesz na linię (hover)
-                if (Math.abs(yValue - appState.thresholdTurbo) < 5 || Math.abs(yValue - appState.thresholdSilent) < 5) {
-                    ctx.style.cursor = 'grab';
-                } else {
-                    ctx.style.cursor = 'default';
-                }
-            }
-        });
-
-        ctx.addEventListener('mouseup', async () => {
-            if (draggingLine) {
-                draggingLine = null;
-                ctx.classList.remove('grabbing');
-                await saveConfigToAPI(); // Zapisujemy konfigurację po puszczeniu myszki
-            }
-        });
-
-        ctx.addEventListener('mouseleave', () => {
-            if (draggingLine) {
-                draggingLine = null;
-                ctx.classList.remove('grabbing');
-                saveConfigToAPI();
-            }
-        });
-
-        // --- KOMUNIKACJA Z API ---
-
-        async function fetchState() {
-            try {
-                const response = await fetch('/api/state');
-                const state = await response.json();
-
-                document.getElementById('currentTemp').innerText = state.currentTemperature + " °C";
-                updateModeUI(state.currentMode);
-
-                // Ważne: Jeśli użytkownik właśnie przesuwa linię, nie nadpisujemy jego akcji serwerem!
-                if (!draggingLine) {
-                    appState.thresholdTurbo = state.thresholdTurbo;
-                    appState.thresholdSilent = state.thresholdSilent;
-                    appState.hysteresis = state.hysteresis;
-
-                    document.getElementById('inputTurbo').value = state.thresholdTurbo;
-                    document.getElementById('inputSilent').value = state.thresholdSilent;
-                    document.getElementById('inputHysteresis').value = state.hysteresis;
-
-                    renderAnnotations();
-                }
-
-                // Dodawanie bieżącej temperatury do wykresu
-                const now = new Date().toLocaleTimeString();
-                tempChart.data.labels.push(now);
-                tempChart.data.datasets[0].data.push(state.currentTemperature);
-
-                if (tempChart.data.labels.length > 40) {
-                    tempChart.data.labels.shift();
-                    tempChart.data.datasets[0].data.shift();
-                }
-                tempChart.update();
-
-            } catch (error) {
-                console.error("Błąd API:", error);
-            }
-        }
-
-        async function saveConfigToAPI() {
-            const newConfig = {
-                thresholdTurbo: parseFloat(document.getElementById('inputTurbo').value),
-                thresholdSilent: parseFloat(document.getElementById('inputSilent').value),
-                hysteresis: parseFloat(document.getElementById('inputHysteresis').value)
-            };
-            await fetch('/api/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newConfig)
-            });
-        }
-
-        // Zapis manualny z przycisku (w razie ręcznej zmiany w polach tekstowych)
-        document.getElementById('btnSave').addEventListener('click', saveConfigToAPI);
-
-        // Odpytywanie serwera co 1 sekundę
-        setInterval(fetchState, 1000);
-        fetchState();
-    </script>
+    <script src="/js/app.js"></script>
 </body>
 </html>
