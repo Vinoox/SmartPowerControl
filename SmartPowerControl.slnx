@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="HWiNFO.Publisher/HWiNFO.Publisher.csproj" />
+  <Project Path="SmartPower.Broker/SmartPower.Broker.csproj" />
+  <Project Path="SmartPower.Controller/SmartPower.Controller.csproj" />
+</Solution>
