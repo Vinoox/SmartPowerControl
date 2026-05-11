@@ -1,195 +1,246 @@
-﻿/* Zmienne globalne (Nowoczesny Dark Mode) */
+﻿/* --- ZMIENNE GLOBALNE --- */
 :root {
-    --bg-main: #121212;
-    --bg-card: #1e1e20;
-    --text-main: #ffffff;
-    --text-muted: #888890;
-    --accent: #007acc;
-    --color-turbo: #ff4757;
-    --color-balanced: #ffa502;
-    --color-silent: #2ed573;
-    --radius: 12px;
+    --bg-gradient: radial-gradient(circle at top right, #1e293b, #0f172a 40%, #020617);
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --neon-blue: #38bdf8;
+    --color-turbo: #ef4444;
+    --color-balanced: #f59e0b;
+    --color-silent: #10b981;
 }
 
+/* --- RESET I BAZA --- */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: var(--bg-main);
-    color: var(--text-main);
     margin: 0;
-    padding: 20px;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-main);
     height: 100vh;
-    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Odcina brzydkie paski przewijania */
 }
 
-/* Układ główny */
-.dashboard-wrapper {
+/* --- GŁÓWNY KONTENER APLIKACJI --- */
+.app-container {
+    width: 95vw;
     max-width: 1400px;
-    margin: 0 auto;
-    height: 100%;
+    height: 90vh;
+    max-height: 900px;
     display: flex;
     flex-direction: column;
+    gap: 20px;
 }
 
-/* Pasek górny */
-.topbar {
+/* --- HEADER --- */
+.app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: 0 10px;
 }
 
-    .topbar h1 {
-        margin: 0;
-        font-size: 1.8em;
-        font-weight: 700;
-    }
-
-.highlight {
-    color: var(--accent);
-}
-
-.status-indicator {
+.logo {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-weight: 600;
-    color: var(--text-muted);
+    gap: 12px;
+    font-size: 1.5em;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
-.dot {
-    width: 10px;
-    height: 10px;
+    .logo svg {
+        stroke: var(--neon-blue);
+    }
+
+.text-glow {
+    color: var(--neon-blue);
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--glass-bg);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background-color: var(--color-silent);
-    box-shadow: 0 0 10px var(--color-silent);
+    background: var(--color-silent);
+    box-shadow: 0 0 8px var(--color-silent);
     animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
     0% {
-        transform: scale(0.95);
-        opacity: 0.8;
+        opacity: 0.6;
     }
 
     50% {
-        transform: scale(1.1);
         opacity: 1;
     }
 
     100% {
-        transform: scale(0.95);
-        opacity: 0.8;
+        opacity: 0.6;
     }
 }
 
-/* Siatka układu */
-.layout-grid {
+/* --- SIATKA DASHBOARDU (GRID) --- */
+.dashboard-grid {
     display: grid;
-    grid-template-columns: 320px 1fr; /* Lewa kolumna sztywna, prawa bierze resztę */
-    gap: 20px;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 24px;
     flex-grow: 1;
-    min-height: 0; /* Ważne dla Canvas w CSS Grid */
+    min-height: 0; /* Kluczowe dla Canvasu! */
 }
 
-/* Wspólne kafelki */
-.card {
-    background-color: var(--bg-card);
-    border-radius: var(--radius);
+/* --- SZKLANE KARTY (GLASSMORPHISM) --- */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
     padding: 30px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-/* Sidebar i Metryki */
-.sidebar {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
-    gap: 30px;
 }
 
-.metric-title {
-    font-size: 0.9em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.card-label {
+    font-size: 0.75em;
+    font-weight: 700;
     color: var(--text-muted);
-    margin: 0 0 10px 0;
+    letter-spacing: 2px;
+    margin: 0 0 15px 0;
 }
 
-.temp-display {
-    font-size: 4em;
+/* --- LEWA KOLUMNA (KPI & USTAWIENIA) --- */
+.kpi-panel {
+    grid-column: 1;
+    grid-row: 1;
+    justify-content: center;
+    text-align: center;
+}
+
+.settings-panel {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.temp-value {
+    font-size: 5.5em;
     font-weight: 800;
     line-height: 1;
+    margin: 10px 0;
+    background: linear-gradient(180deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.mode-badge {
-    display: inline-block;
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-weight: 700;
-    font-size: 1.2em;
-    letter-spacing: 1px;
-}
+    .temp-value .unit {
+        font-size: 0.4em;
+        vertical-align: top;
+    }
 
 .divider {
     height: 1px;
-    background-color: rgba(255,255,255,0.1);
-    margin: 10px 0;
+    background: var(--glass-border);
+    margin: 25px 0;
 }
 
-/* Elegancki Input */
-input[type="number"] {
-    width: 100%;
-    background-color: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-main);
-    padding: 12px 15px;
-    border-radius: 8px;
-    font-size: 1.2em;
-    box-sizing: border-box;
-    transition: border-color 0.3s;
+.mode-display {
+    padding: 15px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1.3em;
+    letter-spacing: 1.5px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
 }
 
-    input[type="number"]:focus {
-        outline: none;
-        border-color: var(--accent);
-    }
+/* Customowy suwak (Range) */
+.setting-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
 
-.help-text {
+#hysteresisVal {
+    color: var(--neon-blue);
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+.setting-desc {
     font-size: 0.85em;
     color: var(--text-muted);
-    margin: 0 0 10px 0;
+    margin-top: 10px;
+    line-height: 1.5;
 }
 
-/* Info Box */
-.info-box {
-    margin-top: auto; /* Wypycha na sam dół sidebaru */
-    background-color: rgba(0, 122, 204, 0.1);
-    border-left: 4px solid var(--accent);
-    padding: 15px;
-    border-radius: 4px;
-    display: flex;
-    gap: 15px;
-    align-items: flex-start;
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
 }
 
-    .info-box p {
-        margin: 0;
-        font-size: 0.9em;
-        line-height: 1.4;
-        color: #ccc;
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: var(--neon-blue);
+        cursor: pointer;
+        margin-top: -8px;
+        box-shadow: 0 0 10px var(--neon-blue);
     }
 
-    .info-box svg {
-        flex-shrink: 0;
-        color: var(--accent);
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 6px;
+        cursor: pointer;
+        background: rgba(255,255,255,0.1);
+        border-radius: 3px;
     }
 
-/* Prawy Panel Wykresu */
-.chart-section {
+/* --- PRAWA KOLUMNA (WYKRES) --- */
+.chart-panel {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    padding-bottom: 20px;
+}
+
+.chart-header {
+    margin-bottom: 20px;
+}
+
+.chart-wrapper {
     position: relative;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
+    width: 100%;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
 }
 
 .grabbing {

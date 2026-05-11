@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartPower Core</title>
+    <title>SmartPower | Pro Dashboard</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
@@ -12,44 +12,53 @@
 </head>
 <body>
 
-    <div class="dashboard-wrapper">
-        <header class="topbar">
-            <h1>SmartPower <span class="highlight">Core</span></h1>
-            <div class="status-indicator">
-                <span class="dot live"></span> System Online
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>SmartPower <span class="text-glow">Engine</span></span>
+            </div>
+            <div class="status-badge">
+                <span class="pulse-dot"></span> Połączono z telemetrią
             </div>
         </header>
 
-        <main class="layout-grid">
+        <main class="dashboard-grid">
 
-            <aside class="sidebar card">
-                <div class="metric-group">
-                    <h2 class="metric-title">Temperatura CPU</h2>
-                    <div class="temp-display" id="currentTemp">-- °C</div>
-                </div>
-
-                <div class="metric-group">
-                    <h2 class="metric-title">Aktywny Profil Zasilania</h2>
-                    <div class="mode-badge" id="currentMode">ŁADOWANIE...</div>
-                </div>
+            <div class="glass-card kpi-panel">
+                <p class="card-label">TEMPERATURA RDZENIA</p>
+                <div class="temp-value" id="currentTemp">--<span class="unit">°C</span></div>
 
                 <div class="divider"></div>
 
-                <div class="metric-group">
-                    <h2 class="metric-title">Histereza (°C)</h2>
-                    <p class="help-text">Zabezpieczenie przed skokami trybów</p>
-                    <input type="number" id="inputHysteresis" step="0.5" min="0" max="15" title="Zmiana wartości automatycznie zapisuje się w systemie">
+                <p class="card-label">PROFIL ZASILANIA</p>
+                <div class="mode-display" id="currentMode">
+                    <span class="mode-text">OCZEKIWANIE</span>
                 </div>
+            </div>
 
-                <div class="info-box">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    <p>Przeciągaj przerywane linie bezpośrednio na wykresie, aby płynnie dostosować limity Throttlingu.</p>
+            <div class="glass-card settings-panel">
+                <p class="card-label">PARAMETRY SYSTEMU</p>
+
+                <div class="setting-group">
+                    <div class="setting-header">
+                        <label>Histereza Tłumienia</label>
+                        <span id="hysteresisVal">3.0 °C</span>
+                    </div>
+                    <input type="range" id="inputHysteresis" min="0" max="15" step="0.5" value="3">
+                    <p class="setting-desc">Zapobiega niestabilnemu przeskakiwaniu trybów (tzw. "ping-pong").</p>
                 </div>
-            </aside>
+            </div>
 
-            <section class="chart-section card">
-                <canvas id="tempChart"></canvas>
-            </section>
+            <div class="glass-card chart-panel">
+                <div class="chart-header">
+                    <p class="card-label">ANALIZA LIMITÓW (THERMAL THROTTLING)</p>
+                    <p class="setting-desc">Przeciągnij przerywane linie, aby skalibrować sztuczną inteligencję chłodzenia.</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
 
         </main>
     </div>
