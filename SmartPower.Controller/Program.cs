@@ -14,6 +14,7 @@ builder.Services.AddCors(); // Przydatne przy pisaniu frontendu
 var app = builder.Build();
 
 app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
+app.UseDefaultFiles();
 app.UseStaticFiles(); // W³¹cza obs³ugê plików w folderze wwwroot (zrobimy to zaraz)
 
 // --- NASZE ENDPOINTY API ---

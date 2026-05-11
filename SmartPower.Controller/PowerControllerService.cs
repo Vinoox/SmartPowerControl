@@ -71,18 +71,25 @@ public class PowerControllerService : BackgroundService
     {
         int desiredMode = _state.CurrentMode;
 
-        // Używamy progów ze stanu _state, zamiast stałych (const)!
-        if (_state.CurrentMode == 2 && currentTemp >= (_state.ThresholdSilent + _state.Hysteresis)) desiredMode = 0;
-        else if ((_state.CurrentMode == 0 || _state.CurrentMode == -1))
+        if (_state.CurrentMode == 1) // Aktualnie TURBO (Wysoka moc)
         {
-            if (currentTemp >= _state.ThresholdTurbo) desiredMode = 1;
-            else if (currentTemp <= _state.ThresholdSilent) desiredMode = 2;
+            if (currentTemp >= _state.ThresholdSilent) desiredMode = 2; // Gwałtowny skok -> od razu Silent
+            else if (currentTemp >= _state.ThresholdTurbo) desiredMode = 0; // Nagrzewa się -> Balanced
         }
-        else if (_state.CurrentMode == 1 && currentTemp <= (_state.ThresholdTurbo - _state.Hysteresis)) desiredMode = 0;
+        else if (_state.CurrentMode == 0 || _state.CurrentMode == -1) // Aktualnie BALANCED (Średnia moc)
+        {
+            if (currentTemp >= _state.ThresholdSilent) desiredMode = 2; // Za gorąco -> Silent (dławienie)
+            else if (currentTemp <= _state.ThresholdTurbo - _state.Hysteresis) desiredMode = 1; // Wystygł -> wracamy na Turbo
+        }
+        else if (_state.CurrentMode == 2) // Aktualnie SILENT (Dławienie awaryjne)
+        {
+            if (currentTemp <= _state.ThresholdTurbo - _state.Hysteresis) desiredMode = 1; // Mocno wystygł -> od razu Turbo
+            else if (currentTemp <= _state.ThresholdSilent - _state.Hysteresis) desiredMode = 0; // Trochę wystygł -> Balanced
+        }
 
         if (desiredMode != _state.CurrentMode)
         {
-            _logger.LogWarning($"[AKCJA] Zmiana trybu na: {desiredMode}");
+            _logger.LogWarning($"[AKCJA - THROTTLING] Zmiana trybu na: {desiredMode}");
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -95,7 +102,7 @@ public class PowerControllerService : BackgroundService
             }
             catch { }
 
-            _state.CurrentMode = desiredMode; // Zapisujemy nowy tryb
+            _state.CurrentMode = desiredMode;
         }
     }
 }
