@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System.Runtime.InteropServices;
 using System.Text.Json;
 using MQTTnet;
 using MQTTnet.Client;
@@ -8,12 +8,12 @@ namespace SmartPower.Controller;
 public class PowerControllerService : BackgroundService
 {
     private readonly ILogger<PowerControllerService> _logger;
-    private readonly PowerSystemState _state; // Dodany współdzielony stan
+    private readonly PowerSystemState _state;
     private IMqttClient _mqttClient;
 
-    private const string GHelperPath = @"C:\GHelper\GHelper.exe";
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
-    // Wstrzykujemy FanSystemState przez konstruktor
     public PowerControllerService(ILogger<PowerControllerService> logger, PowerSystemState state)
     {
         _logger = logger;
@@ -37,9 +37,7 @@ public class PowerControllerService : BackgroundService
                 var payload = System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
                 using var doc = JsonDocument.Parse(payload);
 
-                // Zapisujemy aktualną temperaturę do współdzielonego stanu!
                 _state.CurrentTemperature = doc.RootElement.GetProperty("temperature").GetDouble();
-
                 EvaluateStateMachine(_state.CurrentTemperature);
             }
             catch (Exception ex)
@@ -61,7 +59,7 @@ public class PowerControllerService : BackgroundService
                         .Build();
                     await _mqttClient.SubscribeAsync(subOptions, stoppingToken);
                 }
-                catch { /* Ignorujemy błędy połączenia w pętli */ }
+                catch { }
             }
             await Task.Delay(5000, stoppingToken);
         }
@@ -71,38 +69,75 @@ public class PowerControllerService : BackgroundService
     {
         int desiredMode = _state.CurrentMode;
 
-        if (_state.CurrentMode == 1) // Aktualnie TURBO (Wysoka moc)
+        if (_state.CurrentMode == 1) // Aktualnie TURBO
         {
-            if (currentTemp >= _state.ThresholdSilent) desiredMode = 2; // Gwałtowny skok -> od razu Silent
-            else if (currentTemp >= _state.ThresholdTurbo) desiredMode = 0; // Nagrzewa się -> Balanced
+            if (currentTemp >= _state.ThresholdSilent) desiredMode = 2;
+            else if (currentTemp >= _state.ThresholdTurbo) desiredMode = 0;
         }
-        else if (_state.CurrentMode == 0 || _state.CurrentMode == -1) // Aktualnie BALANCED (Średnia moc)
+        else if (_state.CurrentMode == 0 || _state.CurrentMode == -1) // Aktualnie BALANCED
         {
-            if (currentTemp >= _state.ThresholdSilent) desiredMode = 2; // Za gorąco -> Silent (dławienie)
-            else if (currentTemp <= _state.ThresholdTurbo - _state.Hysteresis) desiredMode = 1; // Wystygł -> wracamy na Turbo
+            if (currentTemp >= _state.ThresholdSilent) desiredMode = 2;
+            else if (currentTemp <= _state.ThresholdTurbo - _state.Hysteresis) desiredMode = 1;
         }
-        else if (_state.CurrentMode == 2) // Aktualnie SILENT (Dławienie awaryjne)
+        else if (_state.CurrentMode == 2) // Aktualnie SILENT
         {
-            if (currentTemp <= _state.ThresholdTurbo - _state.Hysteresis) desiredMode = 1; // Mocno wystygł -> od razu Turbo
-            else if (currentTemp <= _state.ThresholdSilent - _state.Hysteresis) desiredMode = 0; // Trochę wystygł -> Balanced
+            if (currentTemp <= _state.ThresholdTurbo - _state.Hysteresis) desiredMode = 1;
+            else if (currentTemp <= _state.ThresholdSilent - _state.Hysteresis) desiredMode = 0;
         }
 
         if (desiredMode != _state.CurrentMode)
         {
             _logger.LogWarning($"[AKCJA - THROTTLING] Zmiana trybu na: {desiredMode}");
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = GHelperPath,
-                    Arguments = $"/mode {desiredMode}",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-            }
-            catch { }
+
+            // Wywołanie naszej nowej metody zamiast Process.Start()
+            ExecuteGHelperHotkey(desiredMode);
 
             _state.CurrentMode = desiredMode;
+        }
+    }
+
+    // Metoda symulująca ukryte skróty klawiszowe
+    private void ExecuteGHelperHotkey(int modeId)
+    {
+        const byte VK_CONTROL = 0x11;
+        const byte VK_SHIFT = 0x10;
+        const byte VK_MENU = 0x12; // Alt
+        const byte VK_F16 = 0x7F;  // Tryb Silent
+        const byte VK_F17 = 0x80;  // Tryb Balanced
+        const byte VK_F18 = 0x81;  // Tryb Turbo
+        const uint KEYEVENTF_KEYUP = 0x0002;
+
+        byte targetKey = modeId switch
+        {
+            2 => VK_F16,
+            0 => VK_F17,
+            1 => VK_F18,
+            _ => 0
+        };
+
+        if (targetKey == 0) return;
+
+        try
+        {
+            // 1. Wciskamy wirtualnie Ctrl + Shift + Alt
+            keybd_event(VK_CONTROL, 0, 0, 0);
+            keybd_event(VK_SHIFT, 0, 0, 0);
+            keybd_event(VK_MENU, 0, 0, 0);
+
+            // 2. Wciskamy wirtualnie odpowiedni klawisz F16, F17 lub F18
+            keybd_event(targetKey, 0, 0, 0);
+
+            // 3. Puszczamy klawisz F
+            keybd_event(targetKey, 0, KEYEVENTF_KEYUP, 0);
+
+            // 4. Puszczamy klawisze Ctrl + Shift + Alt
+            keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);
+            keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"[BŁĄD] Wystąpił problem z systemową symulacją klawiatury: {ex.Message}");
         }
     }
 }
