@@ -3,63 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartPower | Pro Dashboard</title>
+    <title>SmartPower Core | Enterprise Dashboard</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js" defer></script>
 
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-
     <div class="app-container">
         <header class="app-header">
-            <div class="logo">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                <span>SmartPower <span class="text-glow">Engine</span></span>
+            <div class="brand">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                <h1>SmartPower <span>Core</span></h1>
             </div>
-            <div class="status-badge">
-                <span class="pulse-dot"></span> Połączono z telemetrią
+            <div class="system-status" id="systemStatus" role="status" aria-live="polite">
+                <span class="status-indicator"></span>
+                <span class="status-text">Łączenie...</span>
             </div>
         </header>
 
         <main class="dashboard-grid">
+            <section class="panel control-panel" aria-labelledby="control-heading">
+                <h2 id="control-heading" class="sr-only">Panel Sterowania</h2>
 
-            <div class="glass-card kpi-panel">
-                <p class="card-label">TEMPERATURA RDZENIA</p>
-                <div class="temp-value" id="currentTemp">--<span class="unit">°C</span></div>
-
-                <div class="divider"></div>
-
-                <p class="card-label">PROFIL ZASILANIA</p>
-                <div class="mode-display" id="currentMode">
-                    <span class="mode-text">OCZEKIWANIE</span>
-                </div>
-            </div>
-
-            <div class="glass-card settings-panel">
-                <p class="card-label">PARAMETRY SYSTEMU</p>
-
-                <div class="setting-group">
-                    <div class="setting-header">
-                        <label>Histereza Tłumienia</label>
-                        <span id="hysteresisVal">3.0 °C</span>
+                <div class="metric-card primary-metric">
+                    <span class="metric-label">Temperatura CPU</span>
+                    <div class="metric-value-wrapper">
+                        <span class="metric-value" id="currentTemp">--</span>
+                        <span class="metric-unit">°C</span>
                     </div>
-                    <input type="range" id="inputHysteresis" min="0" max="15" step="0.5" value="3">
-                    <p class="setting-desc">Zapobiega niestabilnemu przeskakiwaniu trybów (tzw. "ping-pong").</p>
                 </div>
-            </div>
 
-            <div class="glass-card chart-panel">
+                <div class="metric-card">
+                    <span class="metric-label">Aktywny Profil</span>
+                    <div class="status-badge" id="currentMode">ANALIZA</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="inputHysteresis" class="metric-label">Histereza termiczna (°C)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="inputHysteresis" step="0.5" min="0" max="15" aria-describedby="hysteresis-help">
+                        <div class="input-focus-border"></div>
+                    </div>
+                    <span id="hysteresis-help" class="help-text">Zapobiega niestabilnemu przełączaniu trybów.</span>
+                </div>
+
+                <div class="info-alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <p>Dostosuj progi <strong>Turbo</strong> i <strong>Silent</strong> przeciągając przerywane linie na wykresie po prawej stronie.</p>
+                </div>
+            </section>
+
+            <section class="panel chart-panel" aria-label="Wykres Temperatury">
                 <div class="chart-header">
-                    <p class="card-label">ANALIZA LIMITÓW (THERMAL THROTTLING)</p>
-                    <p class="setting-desc">Przeciągnij przerywane linie, aby skalibrować sztuczną inteligencję chłodzenia.</p>
+                    <h2>Wykres Telemetryczny na Żywo</h2>
                 </div>
-                <div class="chart-wrapper">
-                    <canvas id="tempChart"></canvas>
+                <div class="chart-container">
+                    <canvas id="tempChart" aria-label="Wykres liniowy temperatury procesora" role="img"></canvas>
                 </div>
-            </div>
-
+            </section>
         </main>
     </div>
 

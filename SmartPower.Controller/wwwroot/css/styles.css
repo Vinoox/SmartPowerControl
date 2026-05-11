@@ -1,248 +1,310 @@
-﻿/* --- ZMIENNE GLOBALNE --- */
+﻿/* Nowoczesny system zmiennych CSS */
 :root {
-    --bg-gradient: radial-gradient(circle at top right, #1e293b, #0f172a 40%, #020617);
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --neon-blue: #38bdf8;
-    --color-turbo: #ef4444;
-    --color-balanced: #f59e0b;
-    --color-silent: #10b981;
+    /* Kolory podstawowe */
+    --bg-base: #0b0c10;
+    --bg-surface: #1f2833;
+    --bg-surface-elevated: #2b3543;
+    /* Typografia */
+    --text-primary: #ffffff;
+    --text-secondary: #8a9bb2;
+    /* Akcenty i statusy */
+    --accent-primary: #66fcf1;
+    --color-turbo: #ff4757;
+    --color-balanced: #ffa502;
+    --color-silent: #2ed573;
+    --color-offline: #747d8c;
+    /* Layout */
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --transition-standard: 0.3s ease;
 }
 
-/* --- RESET I BAZA --- */
-body {
+/* Reset i ustawienia bazowe */
+*, *::before, *::after {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg-gradient);
-    color: var(--text-main);
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden; /* Odcina brzydkie paski przewijania */
 }
 
-/* --- GŁÓWNY KONTENER APLIKACJI --- */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 1.5rem;
+}
+
+/* Dostępność - ukrywanie wizualne */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Układ główny */
 .app-container {
-    width: 95vw;
-    max-width: 1400px;
-    height: 90vh;
-    max-height: 900px;
+    max-width: 1600px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 1.5rem;
+    height: calc(100vh - 3rem);
 }
 
-/* --- HEADER --- */
+/* Header */
 .app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 10px;
+    padding: 1rem 1.5rem;
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.logo {
+.brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 1.5em;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+    gap: 0.75rem;
 }
 
-    .logo svg {
-        stroke: var(--neon-blue);
+    .brand h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
     }
 
-.text-glow {
-    color: var(--neon-blue);
-    text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
-}
+    .brand span {
+        color: var(--accent-primary);
+        font-weight: 400;
+    }
 
-.status-badge {
+/* Wskaźnik statusu */
+.system-status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.85em;
+    gap: 0.5rem;
     font-weight: 600;
-    color: var(--text-muted);
-    background: var(--glass-bg);
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid var(--glass-border);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
 }
 
-.pulse-dot {
-    width: 8px;
-    height: 8px;
+.status-indicator {
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: var(--color-silent);
-    box-shadow: 0 0 8px var(--color-silent);
-    animation: pulse 2s infinite;
+    background-color: var(--color-offline);
+    transition: var(--transition-standard);
+}
+
+.system-status.online .status-indicator {
+    background-color: var(--color-silent);
+    box-shadow: 0 0 12px var(--color-silent);
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.system-status.online .status-text {
+    color: var(--color-silent);
+}
+
+.system-status.offline .status-indicator {
+    background-color: var(--color-turbo);
+}
+
+.system-status.offline .status-text {
+    color: var(--color-turbo);
 }
 
 @keyframes pulse {
-    0% {
-        opacity: 0.6;
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
     }
 
     50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0.6;
+        opacity: 0.5;
+        transform: scale(1.2);
     }
 }
 
-/* --- SIATKA DASHBOARDU (GRID) --- */
+/* Grid Dashboardu */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 320px 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 24px;
-    flex-grow: 1;
-    min-height: 0; /* Kluczowe dla Canvasu! */
+    grid-template-columns: 360px 1fr;
+    gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
 }
 
-/* --- SZKLANE KARTY (GLASSMORPHISM) --- */
-.glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+/* Panele */
+.panel {
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-soft);
     display: flex;
     flex-direction: column;
 }
 
-.card-label {
-    font-size: 0.75em;
-    font-weight: 700;
-    color: var(--text-muted);
-    letter-spacing: 2px;
-    margin: 0 0 15px 0;
+/* Panel Kontrolny */
+.control-panel {
+    gap: 1.5rem;
+    overflow-y: auto;
 }
 
-/* --- LEWA KOLUMNA (KPI & USTAWIENIA) --- */
-.kpi-panel {
-    grid-column: 1;
-    grid-row: 1;
-    justify-content: center;
-    text-align: center;
+.metric-card {
+    background: var(--bg-surface-elevated);
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
+    border-left: 4px solid transparent;
+    transition: var(--transition-standard);
 }
 
-.settings-panel {
-    grid-column: 1;
-    grid-row: 2;
-}
-
-.temp-value {
-    font-size: 5.5em;
-    font-weight: 800;
-    line-height: 1;
-    margin: 10px 0;
-    background: linear-gradient(180deg, #fff, #94a3b8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-    .temp-value .unit {
-        font-size: 0.4em;
-        vertical-align: top;
-    }
-
-.divider {
-    height: 1px;
-    background: var(--glass-border);
-    margin: 25px 0;
-}
-
-.mode-display {
-    padding: 15px;
-    border-radius: 12px;
-    font-weight: 800;
-    font-size: 1.3em;
-    letter-spacing: 1.5px;
-    border: 1px solid transparent;
-    transition: all 0.3s;
-}
-
-/* Customowy suwak (Range) */
-.setting-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
+.metric-label {
+    display: block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
     font-weight: 600;
 }
 
-#hysteresisVal {
-    color: var(--neon-blue);
-    font-family: monospace;
-    font-size: 1.1em;
+.metric-value-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
 }
 
-.setting-desc {
-    font-size: 0.85em;
-    color: var(--text-muted);
-    margin-top: 10px;
-    line-height: 1.5;
+.metric-value {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color var(--transition-standard);
 }
 
-input[type=range] {
-    -webkit-appearance: none;
+.metric-unit {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    transition: var(--transition-standard);
+}
+
+/* Input Fields */
+.input-wrapper {
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+input[type="number"] {
     width: 100%;
-    background: transparent;
+    background: var(--bg-surface-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    font-weight: 600;
+    outline: none;
+    transition: border-color var(--transition-standard);
 }
 
-    input[type=range]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 20px;
-        width: 20px;
-        border-radius: 50%;
-        background: var(--neon-blue);
-        cursor: pointer;
-        margin-top: -8px;
-        box-shadow: 0 0 10px var(--neon-blue);
+    input[type="number"]:focus {
+        border-color: var(--accent-primary);
     }
 
-    input[type=range]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 6px;
-        cursor: pointer;
-        background: rgba(255,255,255,0.1);
-        border-radius: 3px;
+.help-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Alerty Info */
+.info-alert {
+    margin-top: auto;
+    background: rgba(102, 252, 241, 0.05);
+    border: 1px solid rgba(102, 252, 241, 0.2);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+    .info-alert svg {
+        color: var(--accent-primary);
+        flex-shrink: 0;
     }
 
-/* --- PRAWA KOLUMNA (WYKRES) --- */
+    .info-alert p {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .info-alert strong {
+        color: var(--text-primary);
+    }
+
+/* Wykres */
 .chart-panel {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    padding-bottom: 20px;
+    padding: 0;
+    overflow: hidden;
 }
 
 .chart-header {
-    margin-bottom: 20px;
+    padding: 1.5rem 1.5rem 0;
 }
 
-.chart-wrapper {
+    .chart-header h2 {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+.chart-container {
+    flex: 1;
     position: relative;
-    width: 100%;
-    flex-grow: 1;
+    padding: 1.5rem;
     min-height: 0;
 }
 
-canvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-}
+    .chart-container.grabbing {
+        cursor: grabbing !important;
+    }
 
-.grabbing {
-    cursor: grabbing !important;
+/* Responsywność */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container {
+        min-height: 400px;
+    }
+
+    .app-container {
+        height: auto;
+    }
 }

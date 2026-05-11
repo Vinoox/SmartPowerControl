@@ -1,200 +1,331 @@
-﻿const colors = {
-    silent: 'rgba(16, 185, 129, 0.1)',
-    balanced: 'rgba(245, 158, 11, 0.1)',
-    turbo: 'rgba(239, 68, 68, 0.1)'
+﻿// --- UTILS ---
+const Utils = {
+    debounce: (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func(...args), delay);
+        };
+    },
+    formatTime: (date) => date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 };
 
-let appState = { thresholdTurbo: 60, thresholdSilent: 80, hysteresis: 3 };
-let draggingLine = null;
+// --- CONFIG & CONSTANTS ---
+const CONFIG = {
+    COLORS: {
+        silent: { hex: '#2ed573', bg: 'rgba(46, 213, 115, 0.15)', glow: 'rgba(46, 213, 115, 0.4)' },
+        balanced: { hex: '#ffa502', bg: 'rgba(255, 165, 2, 0.15)', glow: 'rgba(255, 165, 2, 0.4)' },
+        turbo: { hex: '#ff4757', bg: 'rgba(255, 71, 87, 0.15)', glow: 'rgba(255, 71, 87, 0.4)' }
+    },
+    MAX_DATA_POINTS: 60,
+    POLL_INTERVAL: 1000
+};
 
-function updateModeUI(modeId) {
-    const el = document.getElementById('currentMode');
-    switch (modeId) {
-        case 0:
-            el.innerHTML = 'BALANCED';
-            el.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
-            el.style.color = 'var(--color-balanced)';
-            el.style.borderColor = 'rgba(245, 158, 11, 0.3)'; break;
-        case 1:
-            el.innerHTML = 'TURBO';
-            el.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-            el.style.color = 'var(--color-turbo)';
-            el.style.borderColor = 'rgba(239, 68, 68, 0.3)'; break;
-        case 2:
-            el.innerHTML = 'SILENT';
-            el.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-            el.style.color = 'var(--color-silent)';
-            el.style.borderColor = 'rgba(16, 185, 129, 0.3)'; break;
-        default:
-            el.innerHTML = 'OFFLINE';
-            el.style.backgroundColor = 'rgba(255,255,255,0.05)';
-            el.style.color = 'var(--text-muted)'; break;
+// --- API SERVICE ---
+class ApiService {
+    static async fetchState() {
+        try {
+            const response = await fetch('/api/state');
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error('[API] Błąd pobierania stanu:', error);
+            throw error;
+        }
+    }
+
+    static async saveConfig(config) {
+        try {
+            const response = await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            if (!response.ok) throw new Error('Błąd zapisu konfiguracji');
+        } catch (error) {
+            console.error('[API] Błąd wysyłania konfiguracji:', error);
+        }
     }
 }
 
-Chart.register(window['chartjs-plugin-annotation']);
-const ctx = document.getElementById('tempChart');
+// --- CHART MANAGER ---
+class ThermalChart {
+    constructor(canvasId, onThresholdChange, onDragEnd) {
+        this.ctx = document.getElementById(canvasId);
+        this.container = this.ctx.parentElement;
+        this.onThresholdChange = onThresholdChange;
+        this.onDragEnd = onDragEnd;
 
-let gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 800);
-gradient.addColorStop(0, 'rgba(56, 189, 248, 0.8)');
-gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        this.draggingLine = null;
+        this.thresholdTurbo = 60;
+        this.thresholdSilent = 80;
 
-const tempChart = new Chart(ctx.getContext('2d'), {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            data: [],
-            borderColor: '#38bdf8',
-            backgroundColor: gradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            shadowOffsetX: 0, shadowOffsetY: 10, shadowBlur: 15, shadowColor: 'rgba(56, 189, 248, 0.5)'
-        }]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { left: 10, right: 30, top: 20, bottom: 10 } },
-        scales: {
-            y: {
-                min: 20, max: 110,
-                grid: { color: 'rgba(255,255,255,0.05)', borderDash: [5, 5] },
-                ticks: { color: '#94a3b8', font: { size: 13, family: 'Inter' } },
-                border: { display: false }
+        this.initChart();
+        this.attachEventListeners();
+    }
+
+    initChart() {
+        Chart.register(window['chartjs-plugin-annotation']);
+
+        this.chart = new Chart(this.ctx, {
+            type: 'line',
+            data: {
+                labels: [], datasets: [{
+                    label: 'CPU Temp',
+                    data: [],
+                    borderColor: 'rgba(255, 255, 255, 0.9)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    pointHitRadius: 10
+                }]
             },
-            x: { display: false }
-        },
-        animation: { duration: 0 },
-        plugins: {
-            legend: { display: false },
-            tooltip: { enabled: false },
-            annotation: {
-                annotations: {
-                    boxTurbo: { type: 'box', yMin: 0, yMax: 60, backgroundColor: colors.turbo, borderWidth: 0 },
-                    boxBalanced: { type: 'box', yMin: 60, yMax: 80, backgroundColor: colors.balanced, borderWidth: 0 },
-                    boxSilent: { type: 'box', yMin: 80, yMax: 120, backgroundColor: colors.silent, borderWidth: 0 },
-
-                    /* --- ZDECYDOWANIE POPRAWIONA CZYTELNOŚĆ PASKÓW --- */
-                    lineTurbo: {
-                        type: 'line', yMin: 60, yMax: 60,
-                        borderColor: '#ef4444', borderWidth: 2, borderDash: [4, 4],
-                        label: {
-                            display: true,
-                            content: 'TURBO 60°C',
-                            position: 'start',
-                            backgroundColor: 'rgba(239, 68, 68, 0.95)', // Solidne tło etykiety
-                            color: '#ffffff', // Czysty biały tekst
-                            padding: { top: 4, bottom: 4, left: 10, right: 10 },
-                            borderRadius: 6,
-                            font: { size: 13, weight: 'bold', family: 'Inter, sans-serif' },
-                            xAdjust: 15,  // Odsunięcie od lewej
-                            yAdjust: -14  // MAGIA: Wypchnięcie napisu NAD linię!
-                        }
-                    },
-                    lineSilent: {
-                        type: 'line', yMin: 80, yMax: 80,
-                        borderColor: '#10b981', borderWidth: 2, borderDash: [4, 4],
-                        label: {
-                            display: true,
-                            content: 'SILENT 80°C',
-                            position: 'start',
-                            backgroundColor: 'rgba(16, 185, 129, 0.95)',
-                            color: '#ffffff',
-                            padding: { top: 4, bottom: 4, left: 10, right: 10 },
-                            borderRadius: 6,
-                            font: { size: 13, weight: 'bold', family: 'Inter, sans-serif' },
-                            xAdjust: 15,
-                            yAdjust: -14  // MAGIA: Wypchnięcie napisu NAD linię!
-                        }
-                    }
-                    /* ------------------------------------------------ */
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 0 },
+                interaction: { intersect: false, mode: 'index' },
+                scales: {
+                    y: { min: 0, max: 120, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a9bb2' } },
+                    x: { display: false }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true },
+                    annotation: { animations: false, annotations: this.getAnnotationsDef() }
                 }
             }
+        });
+    }
+
+    getAnnotationsDef() {
+        const createZone = (yMin, yMax, color) => ({ type: 'box', yMin, yMax, backgroundColor: color, borderWidth: 0 });
+        const createLine = (id, y, color, label) => ({
+            type: 'line', yMin: y, yMax: y, borderColor: color, borderWidth: 2, borderDash: [4, 4],
+            enter: () => this.ctx.style.cursor = 'grab',
+            leave: () => { if (!this.draggingLine) this.ctx.style.cursor = 'default'; },
+            label: { display: true, content: label, position: 'start', backgroundColor: color, font: { weight: 'bold' } }
+        });
+
+        return {
+            boxTurbo: createZone(0, 60, CONFIG.COLORS.turbo.bg),
+            boxBalanced: createZone(60, 80, CONFIG.COLORS.balanced.bg),
+            boxSilent: createZone(80, 120, CONFIG.COLORS.silent.bg),
+            lineTurbo: createLine('turbo', 60, CONFIG.COLORS.turbo.hex, 'LIMIT TURBO: 60°C'),
+            lineSilent: createLine('silent', 80, CONFIG.COLORS.silent.hex, 'LIMIT SILENT: 80°C')
+        };
+    }
+
+    updateData(timeLabel, temperature) {
+        const data = this.chart.data;
+        data.labels.push(timeLabel);
+        data.datasets[0].data.push(temperature);
+
+        if (data.labels.length > CONFIG.MAX_DATA_POINTS) {
+            data.labels.shift();
+            data.datasets[0].data.shift();
+        }
+        this.chart.update('none');
+    }
+
+    updateThresholds(turbo, silent) {
+        if (this.draggingLine) return;
+
+        this.thresholdTurbo = turbo;
+        this.thresholdSilent = silent;
+        this.renderAnnotations();
+    }
+
+    renderAnnotations() {
+        const ann = this.chart.options.plugins.annotation.annotations;
+
+        ann.boxTurbo.yMax = this.thresholdTurbo;
+        ann.boxBalanced.yMin = this.thresholdTurbo;
+        ann.boxBalanced.yMax = this.thresholdSilent;
+        ann.boxSilent.yMin = this.thresholdSilent;
+
+        ann.lineTurbo.yMin = this.thresholdTurbo;
+        ann.lineTurbo.yMax = this.thresholdTurbo;
+        ann.lineTurbo.label.content = `LIMIT TURBO: ${Math.round(this.thresholdTurbo)}°C`;
+
+        ann.lineSilent.yMin = this.thresholdSilent;
+        ann.lineSilent.yMax = this.thresholdSilent;
+        ann.lineSilent.label.content = `LIMIT SILENT: ${Math.round(this.thresholdSilent)}°C`;
+
+        this.chart.update('none');
+    }
+
+
+    attachEventListeners() {
+        this.ctx.addEventListener('mousedown', (e) => this.handleDragStart(e));
+        window.addEventListener('mousemove', (e) => this.handleDragMove(e));
+        window.addEventListener('mouseup', () => this.handleDragEnd());
+    }
+
+    getChartYValue(event) {
+        const rect = this.ctx.getBoundingClientRect();
+        return this.chart.scales.y.getValueForPixel(event.clientY - rect.top);
+    }
+
+    handleDragStart(e) {
+        const yValue = this.getChartYValue(e);
+        if (Math.abs(yValue - this.thresholdTurbo) < 8) this.draggingLine = 'turbo';
+        else if (Math.abs(yValue - this.thresholdSilent) < 8) this.draggingLine = 'silent';
+
+        if (this.draggingLine) {
+            this.container.classList.add('grabbing');
+            this.ctx.style.cursor = 'grabbing';
         }
     }
-});
 
-function renderAnnotations() {
-    const ann = tempChart.options.plugins.annotation.annotations;
+    handleDragMove(e) {
+        if (!this.draggingLine) return;
 
-    ann.boxTurbo.yMax = appState.thresholdTurbo;
-    ann.boxBalanced.yMin = appState.thresholdTurbo;
-    ann.boxBalanced.yMax = appState.thresholdSilent;
-    ann.boxSilent.yMin = appState.thresholdSilent;
+        const yValue = this.getChartYValue(e);
 
-    ann.lineTurbo.yMin = appState.thresholdTurbo;
-    ann.lineTurbo.yMax = appState.thresholdTurbo;
-    // Skrócony, bardzo czytelny tekst
-    ann.lineTurbo.label.content = `TURBO  ${Math.round(appState.thresholdTurbo)}°C`;
-
-    ann.lineSilent.yMin = appState.thresholdSilent;
-    ann.lineSilent.yMax = appState.thresholdSilent;
-    // Skrócony, bardzo czytelny tekst
-    ann.lineSilent.label.content = `SILENT  ${Math.round(appState.thresholdSilent)}°C`;
-
-    tempChart.update();
-}
-
-ctx.addEventListener('mousedown', (e) => {
-    const yValue = tempChart.scales.y.getValueForPixel(e.clientY - ctx.getBoundingClientRect().top);
-    if (Math.abs(yValue - appState.thresholdTurbo) < 5) { draggingLine = 'turbo'; ctx.classList.add('grabbing'); }
-    else if (Math.abs(yValue - appState.thresholdSilent) < 5) { draggingLine = 'silent'; ctx.classList.add('grabbing'); }
-});
-
-ctx.addEventListener('mousemove', (e) => {
-    const yValue = tempChart.scales.y.getValueForPixel(e.clientY - ctx.getBoundingClientRect().top);
-    if (draggingLine) {
-        if (draggingLine === 'turbo') appState.thresholdTurbo = Math.max(20, Math.min(yValue, appState.thresholdSilent - 2));
-        else if (draggingLine === 'silent') appState.thresholdSilent = Math.min(110, Math.max(yValue, appState.thresholdTurbo + 2));
-        renderAnnotations();
-    } else {
-        ctx.style.cursor = (Math.abs(yValue - appState.thresholdTurbo) < 5 || Math.abs(yValue - appState.thresholdSilent) < 5) ? 'grab' : 'default';
-    }
-});
-
-ctx.addEventListener('mouseup', async () => { if (draggingLine) { draggingLine = null; ctx.classList.remove('grabbing'); await saveConfigToAPI(); } });
-ctx.addEventListener('mouseleave', () => { if (draggingLine) { draggingLine = null; ctx.classList.remove('grabbing'); saveConfigToAPI(); } });
-
-const hystInput = document.getElementById('inputHysteresis');
-const hystDisplay = document.getElementById('hysteresisVal');
-hystInput.addEventListener('input', (e) => { hystDisplay.innerText = parseFloat(e.target.value).toFixed(1) + " °C"; });
-hystInput.addEventListener('change', async (e) => { appState.hysteresis = parseFloat(e.target.value); await saveConfigToAPI(); });
-
-async function fetchState() {
-    try {
-        const response = await fetch('/api/state');
-        const state = await response.json();
-
-        document.getElementById('currentTemp').innerHTML = `${Math.round(state.currentTemperature)}<span class="unit">°C</span>`;
-        updateModeUI(state.currentMode);
-
-        if (!draggingLine) {
-            appState.thresholdTurbo = state.thresholdTurbo;
-            appState.thresholdSilent = state.thresholdSilent;
-            appState.hysteresis = state.hysteresis;
-
-            hystInput.value = state.hysteresis;
-            hystDisplay.innerText = state.hysteresis.toFixed(1) + " °C";
-            renderAnnotations();
+        if (this.draggingLine === 'turbo') {
+            this.thresholdTurbo = Math.max(0, Math.min(yValue, this.thresholdSilent - 5));
+        } else {
+            this.thresholdSilent = Math.min(120, Math.max(yValue, this.thresholdTurbo + 5));
         }
 
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        tempChart.data.labels.push(now);
-        tempChart.data.datasets[0].data.push(state.currentTemperature);
+        this.renderAnnotations();
+        this.onThresholdChange(this.thresholdTurbo, this.thresholdSilent);
+    }
 
-        if (tempChart.data.labels.length > 50) { tempChart.data.labels.shift(); tempChart.data.datasets[0].data.shift(); }
-        tempChart.update();
-    } catch (error) { console.error("API Error:", error); }
+    handleDragEnd() {
+        if (this.draggingLine) {
+            this.draggingLine = null;
+            this.container.classList.remove('grabbing');
+            this.ctx.style.cursor = 'default';
+            this.onDragEnd();
+        }
+    }
 }
 
-async function saveConfigToAPI() {
-    await fetch('/api/config', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thresholdTurbo: appState.thresholdTurbo, thresholdSilent: appState.thresholdSilent, hysteresis: appState.hysteresis })
-    });
+// --- APP CONTROLLER ---
+class App {
+    constructor() {
+        this.state = {
+            thresholdTurbo: 60,
+            thresholdSilent: 80,
+            hysteresis: 3,
+            isOnline: false
+        };
+
+        this.elements = {
+            temp: document.getElementById('currentTemp'),
+            mode: document.getElementById('currentMode'),
+            hysteresis: document.getElementById('inputHysteresis'),
+            status: document.getElementById('systemStatus')
+        };
+
+        this.saveConfigDebounced = Utils.debounce(() => this.saveConfig(), 500);
+
+        this.init();
+    }
+
+    init() {
+        this.chartManager = new ThermalChart(
+            'tempChart',
+            (turbo, silent) => this.handleChartDrag(turbo, silent),
+            () => this.saveConfig()
+        );
+
+        this.setupEventListeners();
+        this.startPolling();
+    }
+
+    setupEventListeners() {
+        this.elements.hysteresis.addEventListener('change', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val) && val >= 0 && val <= 15) {
+                this.state.hysteresis = val;
+                this.saveConfig();
+            }
+        });
+    }
+
+    handleChartDrag(turbo, silent) {
+        this.state.thresholdTurbo = turbo;
+        this.state.thresholdSilent = silent;
+    }
+
+    async saveConfig() {
+        await ApiService.saveConfig({
+            thresholdTurbo: this.state.thresholdTurbo,
+            thresholdSilent: this.state.thresholdSilent,
+            hysteresis: this.state.hysteresis
+        });
+    }
+
+    updateUI(serverState) {
+        if (!this.state.isOnline) {
+            this.state.isOnline = true;
+            this.elements.status.classList.remove('offline');
+            this.elements.status.classList.add('online');
+            this.elements.status.querySelector('.status-text').innerText = 'System Online';
+        }
+
+        const temp = Math.round(serverState.currentTemperature);
+        this.elements.temp.innerText = temp;
+        this.elements.temp.style.color = temp > 85 ? CONFIG.COLORS.turbo.hex : 'var(--text-primary)';
+
+        this.updateModeBadge(serverState.currentMode);
+        if (document.activeElement !== this.elements.hysteresis) {
+            this.elements.hysteresis.value = serverState.hysteresis;
+            this.state.hysteresis = serverState.hysteresis;
+        }
+
+        this.chartManager.updateThresholds(serverState.thresholdTurbo, serverState.thresholdSilent);
+        this.chartManager.updateData(Utils.formatTime(new Date()), serverState.currentTemperature);
+    }
+
+    updateModeBadge(modeId) {
+        const badge = this.elements.mode;
+        const modes = [
+            { text: 'BALANCED', color: CONFIG.COLORS.balanced.hex, bg: CONFIG.COLORS.balanced.glow },
+            { text: 'TURBO', color: CONFIG.COLORS.turbo.hex, bg: CONFIG.COLORS.turbo.glow },
+            { text: 'SILENT', color: CONFIG.COLORS.silent.hex, bg: CONFIG.COLORS.silent.glow }
+        ];
+
+        const mode = modes[modeId] || { text: 'NIEZNANY', color: '#fff', bg: 'rgba(255,255,255,0.1)' };
+
+        badge.innerText = mode.text;
+        badge.style.color = mode.color;
+        badge.style.backgroundColor = mode.bg;
+        badge.style.boxShadow = `0 0 10px ${mode.bg}`;
+    }
+
+    handleOffline() {
+        this.state.isOnline = false;
+        this.elements.status.classList.remove('online');
+        this.elements.status.classList.add('offline');
+        this.elements.status.querySelector('.status-text').innerText = 'Brak połączenia';
+        this.elements.mode.innerText = 'OFFLINE';
+        this.elements.mode.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        this.elements.mode.style.color = 'var(--text-secondary)';
+        this.elements.mode.style.boxShadow = 'none';
+    }
+
+    async startPolling() {
+        const poll = async () => {
+            try {
+                const state = await ApiService.fetchState();
+                this.updateUI(state);
+            } catch (error) {
+                this.handleOffline();
+            } finally {
+                setTimeout(poll, CONFIG.POLL_INTERVAL);
+            }
+        };
+
+        window.addEventListener('load', () => poll());
+    }
 }
 
-setInterval(fetchState, 1000);
-fetchState();
+document.addEventListener('DOMContentLoaded', () => {
+    window.appInstance = new App();
+});
