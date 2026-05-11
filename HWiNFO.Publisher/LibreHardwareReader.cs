@@ -2,7 +2,7 @@
 
 namespace HWiNFO.Publisher;
 
-public class LibreHardwareReader : ICpuTemperatureReader, IDisposable
+public class LibreHardwareReader : ICpuDataReader, IDisposable
 {
     private readonly Computer _computer;
 
@@ -24,7 +24,7 @@ public class LibreHardwareReader : ICpuTemperatureReader, IDisposable
         _computer.Open();
     }
 
-    public float? GetCurrentTemperature()
+    public float GetCpuTemperature()
     {
         _computer.Accept(new UpdateVisitor());
 
@@ -36,11 +36,26 @@ public class LibreHardwareReader : ICpuTemperatureReader, IDisposable
             {
                 if (sensor.SensorType == SensorType.Temperature && sensor.Name.Contains("Package"))
                 {
-                    return sensor.Value;
+                    return sensor.Value ?? 0;
                 }
             }
         }
-        return null;
+        return 0;
+    }
+
+    public float GetCpuPower()
+    {
+        _computer.Accept(new UpdateVisitor());
+        foreach (var hardware in _computer.Hardware)
+        {
+            if (hardware.HardwareType == HardwareType.Cpu)
+            {
+                var powerSensor = hardware.Sensors
+                    .FirstOrDefault(s => s.SensorType == SensorType.Power && s.Name.Contains("Package"));
+                return powerSensor?.Value ?? 0;
+            }
+        }
+        return 0;
     }
 
     public void Dispose()

@@ -8,11 +8,11 @@ namespace HWiNFO.Publisher;
 public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
-    private readonly ICpuTemperatureReader _sensorReader;
+    private readonly ICpuDataReader _sensorReader;
     private readonly MqttOptions _mqttOptions;
     private IMqttClient _mqttClient;
 
-    public Worker(ILogger<Worker> logger, ICpuTemperatureReader sensorReader, IOptions<MqttOptions> mqttOptions)
+    public Worker(ILogger<Worker> logger, ICpuDataReader sensorReader, IOptions<MqttOptions> mqttOptions)
     {
         _logger = logger;
         _sensorReader = sensorReader;
@@ -39,20 +39,24 @@ public class Worker : BackgroundService
 
             try
             {
+                float cpuTemp = _sensorReader.GetCpuTemperature();
+                float cpuPower = _sensorReader.GetCpuPower();
 
-                float? cpuTemp = _sensorReader.GetCurrentTemperature();
-
-                if (cpuTemp.HasValue)
+                // Dodanie parametru power do pakietu JSON
+                var payloadObj = new
                 {
-                    var payload = JsonSerializer.Serialize(new { temperature = Math.Round(cpuTemp.Value, 1) });
-                    var message = new MqttApplicationMessageBuilder()
-                        .WithTopic(_mqttOptions.Topic)
-                        .WithPayload(payload)
-                        .Build();
+                    temperature = Math.Round(cpuTemp, 1),
+                    power = Math.Round(cpuPower, 1)
+                };
+                var payload = JsonSerializer.Serialize(payloadObj);
 
-                    await _mqttClient.PublishAsync(message, stoppingToken);
-                    _logger.LogInformation($"Wys³ano: {Math.Round(cpuTemp.Value, 1)}°C");
-                }
+                var message = new MqttApplicationMessageBuilder()
+                    .WithTopic(_mqttOptions.Topic)
+                    .WithPayload(payload)
+                    .Build();
+
+                await _mqttClient.PublishAsync(message, stoppingToken);
+                _logger.LogInformation($"Wys³ano: Temp: {payloadObj.temperature}°C, Moc: {payloadObj.power}W");
             }
             catch (Exception ex)
             {

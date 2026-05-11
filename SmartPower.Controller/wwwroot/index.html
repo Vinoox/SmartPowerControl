@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js" defer></script>
 
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="app-container">
@@ -39,6 +39,14 @@
                 </div>
 
                 <div class="metric-card">
+                    <span class="metric-label">Pobór Mocy CPU</span>
+                    <div class="metric-value-wrapper">
+                        <span class="metric-value" id="currentPower">--</span>
+                        <span class="metric-unit">W</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
                     <span class="metric-label">Aktywny Profil</span>
                     <div class="status-badge" id="currentMode">ANALIZA</div>
                 </div>
@@ -58,21 +66,21 @@
                         <line x1="12" y1="16" x2="12" y2="12"></line>
                         <line x1="12" y1="8" x2="12.01" y2="8"></line>
                     </svg>
-                    <p>Dostosuj progi <strong>Turbo</strong> i <strong>Silent</strong> przeciągając przerywane linie na wykresie po prawej stronie.</p>
+                    <p>Dostosuj progi <strong>Turbo</strong> i <strong>Silent</strong> przeciągając przerywane linie na wykresie temperatury.</p>
                 </div>
             </section>
 
-            <section class="panel chart-panel" aria-label="Wykres Temperatury">
-                <div class="chart-header">
-                    <h2>Wykres Telemetryczny na Żywo</h2>
+            <section class="panel chart-panel" aria-label="Wykresy Telemetryczne">
+                <div class="chart-container" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                    <canvas id="tempChart" aria-label="Wykres liniowy temperatury procesora" role="img"></canvas>
                 </div>
                 <div class="chart-container">
-                    <canvas id="tempChart" aria-label="Wykres liniowy temperatury procesora" role="img"></canvas>
+                    <canvas id="powerChart" aria-label="Wykres liniowy poboru mocy procesora" role="img"></canvas>
                 </div>
             </section>
         </main>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="js/app.js" defer></script>
 </body>
 </html>

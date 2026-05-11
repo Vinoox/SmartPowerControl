@@ -50,18 +50,23 @@ class ApiService {
 
 // --- CHART MANAGER ---
 class ThermalChart {
-    constructor(canvasId, onThresholdChange, onDragEnd) {
+    constructor(canvasId, color, label, onThresholdChange, onDragEnd) {
         this.ctx = document.getElementById(canvasId);
         this.container = this.ctx.parentElement;
+        this.color = color;
+        this.label = label;
         this.onThresholdChange = onThresholdChange;
         this.onDragEnd = onDragEnd;
+        this.hasInteraction = !!onThresholdChange;
 
         this.draggingLine = null;
         this.thresholdTurbo = 60;
         this.thresholdSilent = 80;
 
         this.initChart();
-        this.attachEventListeners();
+        if (this.hasInteraction) {
+            this.attachEventListeners();
+        }
     }
 
     initChart() {
@@ -71,10 +76,10 @@ class ThermalChart {
             type: 'line',
             data: {
                 labels: [], datasets: [{
-                    label: 'CPU Temp',
+                    label: this.label,
                     data: [],
-                    borderColor: 'rgba(255, 255, 255, 0.9)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: this.color,
+                    backgroundColor: this.color.replace('1)', '0.05)'), // Lżejsze tło
                     borderWidth: 2,
                     fill: true,
                     tension: 0.3,
@@ -88,13 +93,21 @@ class ThermalChart {
                 animation: { duration: 0 },
                 interaction: { intersect: false, mode: 'index' },
                 scales: {
-                    y: { min: 0, max: 120, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a9bb2' } },
+                    y: {
+                        min: 0,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#8a9bb2' },
+                        beginAtZero: true
+                    },
                     x: { display: false }
                 },
                 plugins: {
                     legend: { display: false },
                     tooltip: { enabled: true },
-                    annotation: { animations: false, annotations: this.getAnnotationsDef() }
+                    annotation: {
+                        animations: false,
+                        annotations: this.hasInteraction ? this.getAnnotationsDef() : {}
+                    }
                 }
             }
         });
@@ -112,16 +125,16 @@ class ThermalChart {
         return {
             boxTurbo: createZone(0, 60, CONFIG.COLORS.turbo.bg),
             boxBalanced: createZone(60, 80, CONFIG.COLORS.balanced.bg),
-            boxSilent: createZone(80, 120, CONFIG.COLORS.silent.bg),
+            boxSilent: createZone(80, 150, CONFIG.COLORS.silent.bg),
             lineTurbo: createLine('turbo', 60, CONFIG.COLORS.turbo.hex, 'LIMIT TURBO: 60°C'),
             lineSilent: createLine('silent', 80, CONFIG.COLORS.silent.hex, 'LIMIT SILENT: 80°C')
         };
     }
 
-    updateData(timeLabel, temperature) {
+    updateData(timeLabel, value) {
         const data = this.chart.data;
         data.labels.push(timeLabel);
-        data.datasets[0].data.push(temperature);
+        data.datasets[0].data.push(value);
 
         if (data.labels.length > CONFIG.MAX_DATA_POINTS) {
             data.labels.shift();
@@ -131,7 +144,7 @@ class ThermalChart {
     }
 
     updateThresholds(turbo, silent) {
-        if (this.draggingLine) return;
+        if (this.draggingLine || !this.hasInteraction) return;
 
         this.thresholdTurbo = turbo;
         this.thresholdSilent = silent;
@@ -156,7 +169,6 @@ class ThermalChart {
 
         this.chart.update('none');
     }
-
 
     attachEventListeners() {
         this.ctx.addEventListener('mousedown', (e) => this.handleDragStart(e));
@@ -217,6 +229,7 @@ class App {
 
         this.elements = {
             temp: document.getElementById('currentTemp'),
+            power: document.getElementById('currentPower'),
             mode: document.getElementById('currentMode'),
             hysteresis: document.getElementById('inputHysteresis'),
             status: document.getElementById('systemStatus')
@@ -228,10 +241,22 @@ class App {
     }
 
     init() {
-        this.chartManager = new ThermalChart(
+        // Wykres 1: Temperatura (z interakcją zmiany progów)
+        this.tempChart = new ThermalChart(
             'tempChart',
+            'rgba(102, 252, 241, 1)', // Cyjan
+            'CPU Temp (°C)',
             (turbo, silent) => this.handleChartDrag(turbo, silent),
             () => this.saveConfig()
+        );
+
+        // Wykres 2: Moc (tylko odczyt, bez linii progowych)
+        this.powerChart = new ThermalChart(
+            'powerChart',
+            'rgba(255, 165, 2, 1)', // Pomarańczowy
+            'CPU Power (W)',
+            null,
+            null
         );
 
         this.setupEventListeners();
@@ -269,18 +294,29 @@ class App {
             this.elements.status.querySelector('.status-text').innerText = 'System Online';
         }
 
+        // Aktualizacja kart numerycznych
         const temp = Math.round(serverState.currentTemperature);
         this.elements.temp.innerText = temp;
         this.elements.temp.style.color = temp > 85 ? CONFIG.COLORS.turbo.hex : 'var(--text-primary)';
 
+        const power = serverState.currentCpuPower.toFixed(1);
+        this.elements.power.innerText = power;
+
+        // Aktualizacja profilu i histerezy
         this.updateModeBadge(serverState.currentMode);
+
         if (document.activeElement !== this.elements.hysteresis) {
             this.elements.hysteresis.value = serverState.hysteresis;
             this.state.hysteresis = serverState.hysteresis;
         }
 
-        this.chartManager.updateThresholds(serverState.thresholdTurbo, serverState.thresholdSilent);
-        this.chartManager.updateData(Utils.formatTime(new Date()), serverState.currentTemperature);
+        // Aktualizacja wykresów
+        const time = Utils.formatTime(new Date());
+        this.tempChart.updateData(time, serverState.currentTemperature);
+        this.powerChart.updateData(time, serverState.currentCpuPower);
+
+        // Aktualizacja linii progowych (tylko na wykresie temperatury)
+        this.tempChart.updateThresholds(serverState.thresholdTurbo, serverState.thresholdSilent);
     }
 
     updateModeBadge(modeId) {
@@ -313,6 +349,7 @@ class App {
     async startPolling() {
         const poll = async () => {
             try {
+                // Odpytanie działającego API .NET
                 const state = await ApiService.fetchState();
                 this.updateUI(state);
             } catch (error) {

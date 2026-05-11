@@ -42,7 +42,13 @@ public class PowerControllerService : BackgroundService
                 var payload = System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
                 using var doc = JsonDocument.Parse(payload);
 
-                _state.CurrentTemperature = doc.RootElement.GetProperty("temperature").GetDouble();
+                _state.CurrentTemperature = doc.RootElement.GetProperty("temperature").GetSingle();
+
+                if (doc.RootElement.TryGetProperty("power", out var powerElement))
+                {
+                    _state.CurrentCpuPower = powerElement.GetSingle();
+                }
+
                 EvaluateStateMachine(_state.CurrentTemperature);
             }
             catch (Exception ex)
@@ -70,7 +76,7 @@ public class PowerControllerService : BackgroundService
         }
     }
 
-    private void EvaluateStateMachine(double currentTemp)
+    private void EvaluateStateMachine(float currentTemp)
     {
         PowerMode desiredMode = _state.CurrentMode;
 

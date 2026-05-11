@@ -1,6 +1,8 @@
-﻿public class PowerConfigDto
+﻿namespace SmartPower.Controller;
+
+public class PowerConfigDto
 {
-    public double ThresholdTurbo { get; set; }
-    public double ThresholdSilent { get; set; }
-    public double Hysteresis { get; set; }
+    public float ThresholdTurbo { get; set; }
+    public float ThresholdSilent { get; set; }
+    public float Hysteresis { get; set; }
 }

@@ -1,10 +1,11 @@
-﻿namespace SmartPower.Controller;
+﻿using SmartPower.Controller;
 
 public class PowerSystemState
 {
-    public double CurrentTemperature { get; set; }
-    public PowerMode CurrentMode { get; set; } = PowerMode.Unknown;
-    public double ThresholdTurbo { get; set; } = 60.0;
-    public double ThresholdSilent { get; set; } = 80.0;
-    public double Hysteresis { get; set; } = 3.0;
+    public float CurrentTemperature { get; set; }
+    public float CurrentCpuPower { get; set; } // Dodane pole mocy
+    public PowerMode CurrentMode { get; set; } = PowerMode.Unknown; // Enum zamiast int
+    public float ThresholdTurbo { get; set; } = 60.0f;
+    public float ThresholdSilent { get; set; } = 80.0f;
+    public float Hysteresis { get; set; } = 3.0f;
 }
