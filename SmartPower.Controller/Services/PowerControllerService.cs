@@ -1,9 +1,12 @@
-﻿using System.Text.Json;
+﻿using System.Globalization;
 using MQTTnet;
 using MQTTnet.Client;
 using Microsoft.Extensions.Options;
+using SmartPower.Controller.Configuration;
+using SmartPower.Controller.Domain;
+using SmartPower.Controller.Infrastructure;
 
-namespace SmartPower.Controller;
+namespace SmartPower.Controller.Services;
 
 public class PowerControllerService : BackgroundService
 {
@@ -39,17 +42,21 @@ public class PowerControllerService : BackgroundService
         {
             try
             {
-                var payload = System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-                using var doc = JsonDocument.Parse(payload);
+                var topic = e.ApplicationMessage.Topic;
+                var payload = System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment);
 
-                _state.CurrentTemperature = doc.RootElement.GetProperty("temperature").GetSingle();
-
-                if (doc.RootElement.TryGetProperty("power", out var powerElement))
+                if (float.TryParse(payload, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValue))
                 {
-                    _state.CurrentCpuPower = powerElement.GetSingle();
+                    if (topic == _mqttOptions.TopicTemperature)
+                    {
+                        _state.CurrentTemperature = parsedValue;
+                        EvaluateStateMachine(_state.CurrentTemperature);
+                    }
+                    else if (topic == _mqttOptions.TopicPower)
+                    {
+                        _state.CurrentCpuPower = parsedValue;
+                    }
                 }
-
-                EvaluateStateMachine(_state.CurrentTemperature);
             }
             catch (Exception ex)
             {
@@ -65,10 +72,14 @@ public class PowerControllerService : BackgroundService
                 try
                 {
                     await _mqttClient.ConnectAsync(options, stoppingToken);
+
                     var subOptions = factory.CreateSubscribeOptionsBuilder()
-                        .WithTopicFilter(f => f.WithTopic(_mqttOptions.Topic))
+                        .WithTopicFilter(f => f.WithTopic(_mqttOptions.TopicTemperature))
+                        .WithTopicFilter(f => f.WithTopic(_mqttOptions.TopicPower))
                         .Build();
+
                     await _mqttClient.SubscribeAsync(subOptions, stoppingToken);
+                    _logger.LogInformation("Zasubskrybowano topiki telemetryczne.");
                 }
                 catch { }
             }
@@ -99,9 +110,7 @@ public class PowerControllerService : BackgroundService
         if (desiredMode != _state.CurrentMode)
         {
             _logger.LogWarning($"[AKCJA - THROTTLING] Zmiana trybu na: {desiredMode}");
-
             _powerExecutor.SetMode(desiredMode);
-
             _state.CurrentMode = desiredMode;
         }
     }

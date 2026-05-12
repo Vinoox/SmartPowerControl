@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Server;
+using SmartPower.Broker.Configuration;
 
-namespace SmartPower.Broker;
+namespace SmartPower.Broker.Services;
 
 public class Worker : BackgroundService
 {

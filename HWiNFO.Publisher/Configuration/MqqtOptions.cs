@@ -1,0 +1,10 @@
+﻿namespace CpuData.Publisher.Configuration;
+
+public class MqttOptions
+{
+    public const string SectionName = "Mqtt";
+    public string BrokerIp { get; set; } = "127.0.0.1";
+    public int Port { get; set; } = 1883;
+    public string TopicTemperature { get; set; } = "telemetry/cpu/temp";
+    public string TopicPower { get; set; } = "telemetry/cpu/power";
+}

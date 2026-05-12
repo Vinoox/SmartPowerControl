@@ -1,6 +1,6 @@
 ﻿using LibreHardwareMonitor.Hardware;
 
-namespace HWiNFO.Publisher;
+namespace CpuData.Publisher.Infrastructure;
 
 public class LibreHardwareReader : ICpuDataReader, IDisposable
 {

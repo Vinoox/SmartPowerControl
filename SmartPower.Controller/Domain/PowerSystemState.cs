@@ -1,4 +1,4 @@
-﻿using SmartPower.Controller;
+﻿using SmartPower.Controller.Domain;
 
 public class PowerSystemState
 {

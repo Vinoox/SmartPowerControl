@@ -1,4 +1,4 @@
-﻿namespace SmartPower.Broker;
+﻿namespace SmartPower.Broker.Configuration;
 
 public class BrokerOptions
 {

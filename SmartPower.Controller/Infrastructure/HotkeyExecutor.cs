@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
+using SmartPower.Controller.Domain;
 
-namespace SmartPower.Controller;
+namespace SmartPower.Controller.Infrastructure;
 
 public class HotkeyExecutor : IPowerModeExecutor
 {

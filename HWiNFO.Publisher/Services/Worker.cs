@@ -1,9 +1,10 @@
-using System.Text.Json;
+using System.Globalization;
+using CpuData.Publisher.Configuration;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client;
 
-namespace HWiNFO.Publisher;
+namespace CpuData.Publisher.Services;
 
 public class Worker : BackgroundService
 {
@@ -34,7 +35,7 @@ public class Worker : BackgroundService
             if (!_mqttClient.IsConnected)
             {
                 try { await _mqttClient.ConnectAsync(options, stoppingToken); }
-                catch { await Task.Delay(2000, stoppingToken); continue; }
+                catch { await Task.Delay(300, stoppingToken); continue; }
             }
 
             try
@@ -42,25 +43,28 @@ public class Worker : BackgroundService
                 float cpuTemp = _sensorReader.GetCpuTemperature();
                 float cpuPower = _sensorReader.GetCpuPower();
 
-                // Dodanie parametru power do pakietu JSON
-                var payloadObj = new
-                {
-                    temperature = Math.Round(cpuTemp, 1),
-                    power = Math.Round(cpuPower, 1)
-                };
-                var payload = JsonSerializer.Serialize(payloadObj);
+                string tempPayload = Math.Round(cpuTemp, 1).ToString(CultureInfo.InvariantCulture);
+                string powerPayload = Math.Round(cpuPower, 1).ToString(CultureInfo.InvariantCulture);
 
-                var message = new MqttApplicationMessageBuilder()
-                    .WithTopic(_mqttOptions.Topic)
-                    .WithPayload(payload)
+                var tempMessage = new MqttApplicationMessageBuilder()
+                    .WithTopic(_mqttOptions.TopicTemperature)
+                    .WithPayload(tempPayload)
                     .Build();
 
-                await _mqttClient.PublishAsync(message, stoppingToken);
-                _logger.LogInformation($"Wys³ano: Temp: {payloadObj.temperature}°C, Moc: {payloadObj.power}W");
+                var powerMessage = new MqttApplicationMessageBuilder()
+                    .WithTopic(_mqttOptions.TopicPower)
+                    .WithPayload(powerPayload)
+                    .Build();
+
+                await _mqttClient.PublishAsync(tempMessage, stoppingToken);
+                await _mqttClient.PublishAsync(powerMessage, stoppingToken);
+
+                _logger.LogInformation($"Wys³ano -> Temat: {_mqttOptions.TopicTemperature} | Wartoœæ: {tempPayload}°C");
+                _logger.LogInformation($"Wys³ano -> Temat: {_mqttOptions.TopicPower} | Wartoœæ: {powerPayload}W");
             }
             catch (Exception ex)
             {
-                _logger.LogWarning($"B³¹d odczytu: {ex.Message}");
+                _logger.LogWarning($"B³¹d odczytu/wysy³ki: {ex.Message}");
             }
 
             await Task.Delay(1000, stoppingToken);

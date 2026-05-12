@@ -1,4 +1,7 @@
-using SmartPower.Controller;
+using SmartPower.Controller.Configuration;
+using SmartPower.Controller.DTOs;
+using SmartPower.Controller.Infrastructure;
+using SmartPower.Controller.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

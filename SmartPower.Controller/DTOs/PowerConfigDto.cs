@@ -1,4 +1,4 @@
-﻿namespace SmartPower.Controller;
+﻿namespace SmartPower.Controller.DTOs;
 
 public class PowerConfigDto
 {

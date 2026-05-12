@@ -1,4 +1,6 @@
-using HWiNFO.Publisher;
+using CpuData.Publisher.Configuration;
+using CpuData.Publisher.Infrastructure;
+using CpuData.Publisher.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 

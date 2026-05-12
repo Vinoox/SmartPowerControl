@@ -1,4 +1,5 @@
-using SmartPower.Broker;
+using SmartPower.Broker.Configuration;
+using SmartPower.Broker.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 

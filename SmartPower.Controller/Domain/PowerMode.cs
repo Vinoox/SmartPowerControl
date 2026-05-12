@@ -1,4 +1,4 @@
-﻿namespace SmartPower.Controller;
+﻿namespace SmartPower.Controller.Domain;
 
 public enum PowerMode
 {
