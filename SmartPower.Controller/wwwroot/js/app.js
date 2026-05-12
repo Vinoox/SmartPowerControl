@@ -11,11 +11,12 @@ const Utils = {
 };
 
 // --- CONFIG & CONSTANTS ---
+// Dostosowane do nowej nowoczesnej palety kolorów
 const CONFIG = {
     COLORS: {
-        silent: { hex: '#2ed573', bg: 'rgba(46, 213, 115, 0.15)', glow: 'rgba(46, 213, 115, 0.4)' },
-        balanced: { hex: '#ffa502', bg: 'rgba(255, 165, 2, 0.15)', glow: 'rgba(255, 165, 2, 0.4)' },
-        turbo: { hex: '#ff4757', bg: 'rgba(255, 71, 87, 0.15)', glow: 'rgba(255, 71, 87, 0.4)' }
+        silent: { hex: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', glow: 'rgba(16, 185, 129, 0.3)' },
+        balanced: { hex: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', glow: 'rgba(245, 158, 11, 0.3)' },
+        turbo: { hex: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', glow: 'rgba(239, 68, 68, 0.3)' }
     },
     MAX_DATA_POINTS: 60,
     POLL_INTERVAL: 1000
@@ -79,10 +80,10 @@ class ThermalChart {
                     label: this.label,
                     data: [],
                     borderColor: this.color,
-                    backgroundColor: this.color.replace('1)', '0.05)'), // Lżejsze tło
-                    borderWidth: 2,
+                    backgroundColor: this.color.replace('1)', '0.05)'), // Lepszy półprzezroczysty fill
+                    borderWidth: 2.5,
                     fill: true,
-                    tension: 0.3,
+                    tension: 0.4, // Zwiększone napięcie dla bardziej płynnych krzywych
                     pointRadius: 0,
                     pointHitRadius: 10
                 }]
@@ -90,20 +91,33 @@ class ThermalChart {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: { duration: 0 },
+                // Włączenie płynnej animacji dodawania danych
+                animation: { duration: 400, easing: 'easeOutQuart' },
                 interaction: { intersect: false, mode: 'index' },
+                layout: { padding: { top: 10, bottom: 10 } },
                 scales: {
                     y: {
                         min: 0,
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#8a9bb2' },
+                        grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                        ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } },
                         beginAtZero: true
                     },
-                    x: { display: false }
+                    x: {
+                        display: true,
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 6, color: '#64748b', font: { family: 'Inter', size: 10 } }
+                    }
                 },
                 plugins: {
                     legend: { display: false },
-                    tooltip: { enabled: true },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { family: 'Inter' },
+                        bodyFont: { family: 'Inter' },
+                        padding: 10,
+                        cornerRadius: 8
+                    },
                     annotation: {
                         animations: false,
                         annotations: this.hasInteraction ? this.getAnnotationsDef() : {}
@@ -119,15 +133,23 @@ class ThermalChart {
             type: 'line', yMin: y, yMax: y, borderColor: color, borderWidth: 2, borderDash: [4, 4],
             enter: () => this.ctx.style.cursor = 'grab',
             leave: () => { if (!this.draggingLine) this.ctx.style.cursor = 'default'; },
-            label: { display: true, content: label, position: 'start', backgroundColor: color, font: { weight: 'bold' } }
+            label: {
+                display: true,
+                content: label,
+                position: 'start',
+                backgroundColor: color,
+                font: { family: 'Inter', weight: 'bold', size: 10 },
+                padding: 4,
+                borderRadius: 4
+            }
         });
 
         return {
             boxTurbo: createZone(0, 60, CONFIG.COLORS.turbo.bg),
             boxBalanced: createZone(60, 80, CONFIG.COLORS.balanced.bg),
             boxSilent: createZone(80, 150, CONFIG.COLORS.silent.bg),
-            lineTurbo: createLine('turbo', 60, CONFIG.COLORS.turbo.hex, 'LIMIT TURBO: 60°C'),
-            lineSilent: createLine('silent', 80, CONFIG.COLORS.silent.hex, 'LIMIT SILENT: 80°C')
+            lineTurbo: createLine('turbo', 60, CONFIG.COLORS.turbo.hex, 'TURBO: 60°C'),
+            lineSilent: createLine('silent', 80, CONFIG.COLORS.silent.hex, 'SILENT: 80°C')
         };
     }
 
@@ -140,7 +162,7 @@ class ThermalChart {
             data.labels.shift();
             data.datasets[0].data.shift();
         }
-        this.chart.update('none');
+        this.chart.update('none'); // używamy 'none' do adnotacji, dodawanie punktów w chart.js samo się animuje
     }
 
     updateThresholds(turbo, silent) {
@@ -161,11 +183,11 @@ class ThermalChart {
 
         ann.lineTurbo.yMin = this.thresholdTurbo;
         ann.lineTurbo.yMax = this.thresholdTurbo;
-        ann.lineTurbo.label.content = `LIMIT TURBO: ${Math.round(this.thresholdTurbo)}°C`;
+        ann.lineTurbo.label.content = `TURBO: ${Math.round(this.thresholdTurbo)}°C`;
 
         ann.lineSilent.yMin = this.thresholdSilent;
         ann.lineSilent.yMax = this.thresholdSilent;
-        ann.lineSilent.label.content = `LIMIT SILENT: ${Math.round(this.thresholdSilent)}°C`;
+        ann.lineSilent.label.content = `SILENT: ${Math.round(this.thresholdSilent)}°C`;
 
         this.chart.update('none');
     }
@@ -241,19 +263,18 @@ class App {
     }
 
     init() {
-        // Wykres 1: Temperatura (z interakcją zmiany progów)
+        // Nowoczesne kolory dla wykresów
         this.tempChart = new ThermalChart(
             'tempChart',
-            'rgba(102, 252, 241, 1)', // Cyjan
+            'rgba(14, 165, 233, 1)', // Light Blue / Cyan
             'CPU Temp (°C)',
             (turbo, silent) => this.handleChartDrag(turbo, silent),
             () => this.saveConfig()
         );
 
-        // Wykres 2: Moc (tylko odczyt, bez linii progowych)
         this.powerChart = new ThermalChart(
             'powerChart',
-            'rgba(255, 165, 2, 1)', // Pomarańczowy
+            'rgba(139, 92, 246, 1)', // Fioletowy (dodaje urozmaicenia)
             'CPU Power (W)',
             null,
             null
@@ -291,10 +312,9 @@ class App {
             this.state.isOnline = true;
             this.elements.status.classList.remove('offline');
             this.elements.status.classList.add('online');
-            this.elements.status.querySelector('.status-text').innerText = 'System Online';
+            this.elements.status.querySelector('.status-text').innerText = 'Połączono';
         }
 
-        // Aktualizacja kart numerycznych
         const temp = Math.round(serverState.currentTemperature);
         this.elements.temp.innerText = temp;
         this.elements.temp.style.color = temp > 85 ? CONFIG.COLORS.turbo.hex : 'var(--text-primary)';
@@ -302,7 +322,6 @@ class App {
         const power = serverState.currentCpuPower.toFixed(1);
         this.elements.power.innerText = power;
 
-        // Aktualizacja profilu i histerezy
         this.updateModeBadge(serverState.currentMode);
 
         if (document.activeElement !== this.elements.hysteresis) {
@@ -310,29 +329,28 @@ class App {
             this.state.hysteresis = serverState.hysteresis;
         }
 
-        // Aktualizacja wykresów
         const time = Utils.formatTime(new Date());
         this.tempChart.updateData(time, serverState.currentTemperature);
         this.powerChart.updateData(time, serverState.currentCpuPower);
 
-        // Aktualizacja linii progowych (tylko na wykresie temperatury)
         this.tempChart.updateThresholds(serverState.thresholdTurbo, serverState.thresholdSilent);
     }
 
     updateModeBadge(modeId) {
         const badge = this.elements.mode;
         const modes = [
-            { text: 'BALANCED', color: CONFIG.COLORS.balanced.hex, bg: CONFIG.COLORS.balanced.glow },
-            { text: 'TURBO', color: CONFIG.COLORS.turbo.hex, bg: CONFIG.COLORS.turbo.glow },
-            { text: 'SILENT', color: CONFIG.COLORS.silent.hex, bg: CONFIG.COLORS.silent.glow }
+            { text: 'BALANCED', color: CONFIG.COLORS.balanced.hex, bg: CONFIG.COLORS.balanced.bg, border: CONFIG.COLORS.balanced.hex },
+            { text: 'TURBO', color: CONFIG.COLORS.turbo.hex, bg: CONFIG.COLORS.turbo.bg, border: CONFIG.COLORS.turbo.hex },
+            { text: 'SILENT', color: CONFIG.COLORS.silent.hex, bg: CONFIG.COLORS.silent.bg, border: CONFIG.COLORS.silent.hex }
         ];
 
-        const mode = modes[modeId] || { text: 'NIEZNANY', color: '#fff', bg: 'rgba(255,255,255,0.1)' };
+        const mode = modes[modeId] || { text: 'NIEZNANY', color: '#fff', bg: 'rgba(255,255,255,0.1)', border: 'transparent' };
 
         badge.innerText = mode.text;
         badge.style.color = mode.color;
         badge.style.backgroundColor = mode.bg;
-        badge.style.boxShadow = `0 0 10px ${mode.bg}`;
+        badge.style.border = `1px solid ${mode.border}`;
+        badge.style.boxShadow = `0 0 15px ${mode.bg}`;
     }
 
     handleOffline() {
@@ -341,15 +359,15 @@ class App {
         this.elements.status.classList.add('offline');
         this.elements.status.querySelector('.status-text').innerText = 'Brak połączenia';
         this.elements.mode.innerText = 'OFFLINE';
-        this.elements.mode.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        this.elements.mode.style.backgroundColor = 'rgba(255,255,255,0.05)';
         this.elements.mode.style.color = 'var(--text-secondary)';
         this.elements.mode.style.boxShadow = 'none';
+        this.elements.mode.style.border = '1px solid rgba(255,255,255,0.1)';
     }
 
     async startPolling() {
         const poll = async () => {
             try {
-                // Odpytanie działającego API .NET
                 const state = await ApiService.fetchState();
                 this.updateUI(state);
             } catch (error) {

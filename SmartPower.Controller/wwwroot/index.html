@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartPower Core | Enterprise Dashboard</title>
+    <title>SmartPower Core | Dashboard</title>
 
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js" defer></script>
 
@@ -15,67 +18,92 @@
     <div class="app-container">
         <header class="app-header">
             <div class="brand">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </div>
                 <h1>SmartPower <span>Core</span></h1>
             </div>
             <div class="system-status" id="systemStatus" role="status" aria-live="polite">
                 <span class="status-indicator"></span>
-                <span class="status-text">Łączenie...</span>
+                <span class="status-text">Łączenie z serwerem...</span>
             </div>
         </header>
 
         <main class="dashboard-grid">
             <section class="panel control-panel" aria-labelledby="control-heading">
-                <h2 id="control-heading" class="sr-only">Panel Sterowania</h2>
+                <h2 id="control-heading" class="panel-title">Panel Sterowania</h2>
 
-                <div class="metric-card primary-metric">
-                    <span class="metric-label">Temperatura CPU</span>
-                    <div class="metric-value-wrapper">
-                        <span class="metric-value" id="currentTemp">--</span>
-                        <span class="metric-unit">°C</span>
+                <div class="metrics-grid">
+                    <div class="metric-card primary-metric">
+                        <div class="metric-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+                            <span class="metric-label">Temp. CPU</span>
+                        </div>
+                        <div class="metric-value-wrapper">
+                            <span class="metric-value" id="currentTemp">--</span>
+                            <span class="metric-unit">°C</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                            <span class="metric-label">Moc CPU</span>
+                        </div>
+                        <div class="metric-value-wrapper">
+                            <span class="metric-value" id="currentPower">--</span>
+                            <span class="metric-unit">W</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="metric-card">
-                    <span class="metric-label">Pobór Mocy CPU</span>
-                    <div class="metric-value-wrapper">
-                        <span class="metric-value" id="currentPower">--</span>
-                        <span class="metric-unit">W</span>
+                <div class="control-card">
+                    <div class="metric-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <span class="metric-label">Aktywny Profil</span>
                     </div>
+                    <div class="status-badge" id="currentMode">OCZEKIWANIE</div>
                 </div>
 
-                <div class="metric-card">
-                    <span class="metric-label">Aktywny Profil</span>
-                    <div class="status-badge" id="currentMode">ANALIZA</div>
-                </div>
-
-                <div class="control-group">
+                <div class="control-card input-card">
                     <label for="inputHysteresis" class="metric-label">Histereza termiczna (°C)</label>
                     <div class="input-wrapper">
                         <input type="number" id="inputHysteresis" step="0.5" min="0" max="15" aria-describedby="hysteresis-help">
-                        <div class="input-focus-border"></div>
                     </div>
-                    <span id="hysteresis-help" class="help-text">Zapobiega niestabilnemu przełączaniu trybów.</span>
+                    <span id="hysteresis-help" class="help-text">Margines zapobiegający niestabilnemu przełączaniu trybów.</span>
                 </div>
 
                 <div class="info-alert">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="16" x2="12" y2="12"></line>
                         <line x1="12" y1="8" x2="12.01" y2="8"></line>
                     </svg>
-                    <p>Dostosuj progi <strong>Turbo</strong> i <strong>Silent</strong> przeciągając przerywane linie na wykresie temperatury.</p>
+                    <p>Dostosuj progi <strong>Turbo</strong> i <strong>Silent</strong>, przeciągając przerywane linie bezpośrednio na wykresie temperatury.</p>
                 </div>
             </section>
 
-            <section class="panel chart-panel" aria-label="Wykresy Telemetryczne">
-                <div class="chart-container" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                    <canvas id="tempChart" aria-label="Wykres liniowy temperatury procesora" role="img"></canvas>
+            <section class="charts-section" aria-label="Wykresy Telemetryczne">
+                <div class="panel chart-panel">
+                    <div class="chart-header">
+                        <h3>Wykres Temperatury</h3>
+                        <span class="live-indicator">LIVE</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tempChart" aria-label="Wykres liniowy temperatury procesora" role="img"></canvas>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="powerChart" aria-label="Wykres liniowy poboru mocy procesora" role="img"></canvas>
+
+                <div class="panel chart-panel">
+                    <div class="chart-header">
+                        <h3>Wykres Poboru Mocy</h3>
+                        <span class="live-indicator">LIVE</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="powerChart" aria-label="Wykres liniowy poboru mocy procesora" role="img"></canvas>
+                    </div>
                 </div>
             </section>
         </main>
